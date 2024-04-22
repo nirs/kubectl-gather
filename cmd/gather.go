@@ -4,14 +4,17 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -180,12 +183,32 @@ func (g *Gatherer) listResources(r *resource) (*unstructured.UnstructuredList, e
 }
 
 func (g *Gatherer) dumpResource(r *resource, item *unstructured.Unstructured) error {
-	// TODO: dump yaml to output directory.
-	if r.APIResource.Namespaced {
-		fmt.Printf("namespaces/%s/%s/%s\n", item.GetNamespace(), r.Name(), item.GetName())
-	} else {
-		fmt.Printf("cluster/%s/%s\n", r.Name(), item.GetName())
+	dir, err := g.createDirectory(r, item)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	var printer printers.YAMLPrinter
+	var b bytes.Buffer
+	if err := printer.PrintObj(item, &b); err != nil {
+		return err
+	}
+
+	filename := filepath.Join(dir, item.GetName()+".yaml")
+	return os.WriteFile(filename, b.Bytes(), 0640)
+}
+
+func (g *Gatherer) createDirectory(r *resource, item *unstructured.Unstructured) (string, error) {
+	var dir string
+	if r.APIResource.Namespaced {
+		dir = filepath.Join(g.directory, g.opts.Context, "namespaces", item.GetNamespace(), r.Name())
+	} else {
+		dir = filepath.Join(g.directory, g.opts.Context, "cluster", r.Name())
+	}
+
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }
