@@ -4,13 +4,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -23,10 +26,11 @@ type GatherOptions struct {
 }
 
 type Gatherer struct {
-	restConfig *rest.Config
-	httpClient *http.Client
-	directory  string
-	opts       *GatherOptions
+	restConfig   *rest.Config
+	httpClient   *http.Client
+	gatherClient *dynamic.DynamicClient
+	directory    string
+	opts         *GatherOptions
 }
 
 type resource struct {
@@ -53,16 +57,28 @@ func NewGatherer(config *api.Config, directory string, opts GatherOptions) (*Gat
 		return nil, err
 	}
 
+	// We want list all api resources (~80) quickly, gather logs from all pods,
+	// and run various commands on the nodes. This change makes gathering 60
+	// times faster than the defaults. (9.6 seconds -> 0.15 seconds).
+	restConfig.QPS = 50
+	restConfig.Burst = 100
+
 	httpClient, err := rest.HTTPClientFor(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
+	gatherClient, err := dynamic.NewForConfigAndClient(restConfig, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Gatherer{
-		restConfig: restConfig,
-		httpClient: httpClient,
-		directory:  directory,
-		opts:       &opts,
+		restConfig:   restConfig,
+		httpClient:   httpClient,
+		gatherClient: gatherClient,
+		directory:    directory,
+		opts:         &opts,
 	}, nil
 }
 
@@ -72,9 +88,11 @@ func (g *Gatherer) Gather() error {
 		return err
 	}
 
-	// TODO: Gather the resources instead of printing.
-	for _, res := range resources {
-		fmt.Printf("%s\n", res.Name())
+	for i := range resources {
+		r := &resources[i]
+		if err := g.gatherResources(r); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -120,4 +138,54 @@ func (g *Gatherer) listAPIResources() ([]resource, error) {
 	}
 
 	return resources, nil
+}
+
+func (g *Gatherer) gatherResources(r *resource) error {
+	list, err := g.listResources(r)
+	if err != nil {
+		return err
+	}
+
+	for i := range list.Items {
+		item := &list.Items[i]
+		err := g.dumpResource(r, item)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (g *Gatherer) listResources(r *resource) (*unstructured.UnstructuredList, error) {
+	var gvr = schema.GroupVersionResource{
+		Group:    r.GV.Group,
+		Version:  r.GV.Version,
+		Resource: r.APIResource.Name,
+	}
+
+	if r.APIResource.Namespaced {
+		list, err := g.gatherClient.Resource(gvr).Namespace(g.opts.Namespace).List(context.TODO(), v1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return list, nil
+	} else {
+		list, err := g.gatherClient.Resource(gvr).List(context.TODO(), v1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return list, nil
+	}
+}
+
+func (g *Gatherer) dumpResource(r *resource, item *unstructured.Unstructured) error {
+	// TODO: dump yaml to output directory.
+	if r.APIResource.Namespaced {
+		fmt.Printf("namespaces/%s/%s/%s\n", item.GetNamespace(), r.Name(), item.GetName())
+	} else {
+		fmt.Printf("cluster/%s/%s\n", r.Name(), item.GetName())
+	}
+
+	return nil
 }
