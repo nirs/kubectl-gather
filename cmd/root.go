@@ -63,7 +63,7 @@ func init() {
 		"directory for storing gathered data")
 	rootCmd.Flags().StringVar(&options.Context, "context", "",
 		"the kubeconfig context of the cluster to gather data from")
-	rootCmd.Flags().StringVar(&options.Namespace, "namespace", "",
+	rootCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "",
 		"namespace to gather data from")
 	rootCmd.Flags().BoolVarP(&options.Verbose, "verbose", "v", false,
 		"be more verbose")
