@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/printers"
@@ -29,25 +29,25 @@ type GatherOptions struct {
 }
 
 type Gatherer struct {
-	restConfig   *rest.Config
-	httpClient   *http.Client
-	gatherClient *dynamic.DynamicClient
-	directory    string
-	opts         *GatherOptions
+	restConfig      *rest.Config
+	httpClient      *http.Client
+	resourcesClient *dynamic.DynamicClient
+	directory       string
+	opts            *GatherOptions
 }
 
-type resource struct {
-	GV          *schema.GroupVersion
-	APIResource *v1.APIResource
+type resourceInfo struct {
+	GroupVersion *schema.GroupVersion
+	APIResource  *metav1.APIResource
 }
 
 // Name returns the full name of the reosurce, used as the directory name in the
 // gather directory.
-func (r *resource) Name() string {
-	if r.GV.Group == "" {
+func (r *resourceInfo) Name() string {
+	if r.GroupVersion.Group == "" {
 		return r.APIResource.Name
 	}
-	return r.APIResource.Name + "." + r.GV.Group
+	return r.APIResource.Name + "." + r.GroupVersion.Group
 }
 
 func NewGatherer(config *api.Config, directory string, opts GatherOptions) (*Gatherer, error) {
@@ -71,17 +71,17 @@ func NewGatherer(config *api.Config, directory string, opts GatherOptions) (*Gat
 		return nil, err
 	}
 
-	gatherClient, err := dynamic.NewForConfigAndClient(restConfig, httpClient)
+	resourcesClient, err := dynamic.NewForConfigAndClient(restConfig, httpClient)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Gatherer{
-		restConfig:   restConfig,
-		httpClient:   httpClient,
-		gatherClient: gatherClient,
-		directory:    directory,
-		opts:         &opts,
+		restConfig:      restConfig,
+		httpClient:      httpClient,
+		resourcesClient: resourcesClient,
+		directory:       directory,
+		opts:            &opts,
 	}, nil
 }
 
@@ -101,7 +101,7 @@ func (g *Gatherer) Gather() error {
 	return nil
 }
 
-func (g *Gatherer) listAPIResources() ([]resource, error) {
+func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(g.restConfig, g.httpClient)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (g *Gatherer) listAPIResources() ([]resource, error) {
 		return nil, err
 	}
 
-	resources := []resource{}
+	resources := []resourceInfo{}
 
 	for _, list := range items {
 		// Some resources have empty Group, and the resource list have only
@@ -136,14 +136,14 @@ func (g *Gatherer) listAPIResources() ([]resource, error) {
 				continue
 			}
 
-			resources = append(resources, resource{GV: &gv, APIResource: res})
+			resources = append(resources, resourceInfo{GroupVersion: &gv, APIResource: res})
 		}
 	}
 
 	return resources, nil
 }
 
-func (g *Gatherer) gatherResources(r *resource) error {
+func (g *Gatherer) gatherResources(r *resourceInfo) error {
 	list, err := g.listResources(r)
 	if err != nil {
 		return err
@@ -160,30 +160,33 @@ func (g *Gatherer) gatherResources(r *resource) error {
 	return nil
 }
 
-func (g *Gatherer) listResources(r *resource) (*unstructured.UnstructuredList, error) {
+func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredList, error) {
 	var gvr = schema.GroupVersionResource{
-		Group:    r.GV.Group,
-		Version:  r.GV.Version,
+		Group:    r.GroupVersion.Group,
+		Version:  r.GroupVersion.Version,
 		Resource: r.APIResource.Name,
 	}
 
+	ctx := context.TODO()
+	var opts metav1.ListOptions
+	var list *unstructured.UnstructuredList
+	var err error
+
 	if r.APIResource.Namespaced {
-		list, err := g.gatherClient.Resource(gvr).Namespace(g.opts.Namespace).List(context.TODO(), v1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return list, nil
+		list, err = g.resourcesClient.Resource(gvr).Namespace(g.opts.Namespace).List(ctx, opts)
 	} else {
-		list, err := g.gatherClient.Resource(gvr).List(context.TODO(), v1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return list, nil
+		list, err = g.resourcesClient.Resource(gvr).List(ctx, opts)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 
-func (g *Gatherer) dumpResource(r *resource, item *unstructured.Unstructured) error {
-	dir, err := g.createDirectory(r, item)
+func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured) error {
+	dir, err := g.createResourceDirectory(r, item)
 	if err != nil {
 		return err
 	}
@@ -198,7 +201,7 @@ func (g *Gatherer) dumpResource(r *resource, item *unstructured.Unstructured) er
 	return os.WriteFile(filename, b.Bytes(), 0640)
 }
 
-func (g *Gatherer) createDirectory(r *resource, item *unstructured.Unstructured) (string, error) {
+func (g *Gatherer) createResourceDirectory(r *resourceInfo, item *unstructured.Unstructured) (string, error) {
 	var dir string
 	if r.APIResource.Namespaced {
 		dir = filepath.Join(g.directory, g.opts.Context, "namespaces", item.GetNamespace(), r.Name())
