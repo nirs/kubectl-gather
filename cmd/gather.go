@@ -96,7 +96,7 @@ func NewGatherer(config *api.Config, directory string, opts GatherOptions) (*Gat
 		httpClient:      httpClient,
 		resourcesClient: resourcesClient,
 		logsClient:      logsClient,
-		directory:       directory,
+		directory:       filepath.Join(directory, opts.Context),
 		opts:            &opts,
 	}, nil
 }
@@ -227,9 +227,9 @@ func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured
 func (g *Gatherer) createResourceDirectory(r *resourceInfo, item *unstructured.Unstructured) (string, error) {
 	var dir string
 	if r.APIResource.Namespaced {
-		dir = filepath.Join(g.directory, g.opts.Context, "namespaces", item.GetNamespace(), r.Name())
+		dir = filepath.Join(g.directory, "namespaces", item.GetNamespace(), r.Name())
 	} else {
-		dir = filepath.Join(g.directory, g.opts.Context, "cluster", r.Name())
+		dir = filepath.Join(g.directory, "cluster", r.Name())
 	}
 
 	if err := os.MkdirAll(dir, 0750); err != nil {
@@ -349,8 +349,8 @@ func (g *Gatherer) gatherContainerLog(container containerInfo, previous bool) er
 }
 
 func (g *Gatherer) createContainerDirectory(container containerInfo) (string, error) {
-	dir := filepath.Join(g.directory, g.opts.Context, "namespaces", container.Namespace,
-		"pods", container.Pod, container.Name)
+	dir := filepath.Join(g.directory, "namespaces", container.Namespace, "pods",
+		container.Pod, container.Name)
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return "", err
 	}
