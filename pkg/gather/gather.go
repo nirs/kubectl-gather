@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"net/http"
 	"path/filepath"
 	"slices"
 
@@ -29,8 +28,7 @@ type Options struct {
 }
 
 type Gatherer struct {
-	restConfig      *rest.Config
-	httpClient      *http.Client
+	discoveryClient *discovery.DiscoveryClient
 	resourcesClient *dynamic.DynamicClient
 	logsGatherer    *LogsGatherer
 	output          OutputDirectory
@@ -72,6 +70,11 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		return nil, err
 	}
 
+	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(restConfig, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
 	resourcesClient, err := dynamic.NewForConfigAndClient(restConfig, httpClient)
 	if err != nil {
 		return nil, err
@@ -85,8 +88,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 	}
 
 	return &Gatherer{
-		restConfig:      restConfig,
-		httpClient:      httpClient,
+		discoveryClient: discoveryClient,
 		resourcesClient: resourcesClient,
 		logsGatherer:    logsGatherer,
 		output:          output,
@@ -111,12 +113,7 @@ func (g *Gatherer) Gather() error {
 }
 
 func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(g.restConfig, g.httpClient)
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := discoveryClient.ServerPreferredResources()
+	items, err := g.discoveryClient.ServerPreferredResources()
 	if err != nil {
 		return nil, err
 	}
