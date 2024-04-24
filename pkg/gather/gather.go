@@ -4,11 +4,10 @@
 package gather
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"slices"
 
@@ -36,7 +35,7 @@ type Gatherer struct {
 	httpClient      *http.Client
 	resourcesClient *dynamic.DynamicClient
 	logsClient      *rest.RESTClient
-	directory       string
+	output          OutputDirectory
 	opts            *Options
 }
 
@@ -96,7 +95,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		httpClient:      httpClient,
 		resourcesClient: resourcesClient,
 		logsClient:      logsClient,
-		directory:       filepath.Join(directory, opts.Context),
+		output:          OutputDirectory{base: filepath.Join(directory, opts.Context)},
 		opts:            &opts,
 	}, nil
 }
@@ -209,34 +208,27 @@ func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredLis
 }
 
 func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured) error {
-	dir, err := g.createResourceDirectory(r, item)
+	dst, err := g.createResource(r, item)
 	if err != nil {
 		return err
 	}
 
-	var printer printers.YAMLPrinter
-	var b bytes.Buffer
-	if err := printer.PrintObj(item, &b); err != nil {
+	defer dst.Close()
+	writer := bufio.NewWriter(dst)
+	printer := printers.YAMLPrinter{}
+	if err := printer.PrintObj(item, writer); err != nil {
 		return err
 	}
 
-	filename := filepath.Join(dir, item.GetName()+".yaml")
-	return os.WriteFile(filename, b.Bytes(), 0640)
+	return writer.Flush()
 }
 
-func (g *Gatherer) createResourceDirectory(r *resourceInfo, item *unstructured.Unstructured) (string, error) {
-	var dir string
+func (g *Gatherer) createResource(r *resourceInfo, item *unstructured.Unstructured) (io.WriteCloser, error) {
 	if r.APIResource.Namespaced {
-		dir = filepath.Join(g.directory, "namespaces", item.GetNamespace(), r.Name())
+		return g.output.CreateNamespacedResource(item.GetNamespace(), r.Name(), item.GetName())
 	} else {
-		dir = filepath.Join(g.directory, "cluster", r.Name())
+		return g.output.CreateClusterResource(r.Name(), item.GetName())
 	}
-
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return "", err
-	}
-
-	return dir, nil
 }
 
 func createLogsClient(config *rest.Config, httpClient *http.Client) (*rest.RESTClient, error) {
@@ -331,13 +323,7 @@ func (g *Gatherer) gatherContainerLog(container containerInfo, previous bool) er
 
 	defer src.Close()
 
-	dir, err := g.createContainerDirectory(container)
-	if err != nil {
-		return err
-	}
-
-	filename := filepath.Join(dir, which+".log")
-	dst, err := os.Create(filename)
+	dst, err := g.output.CreateContainerLog(container.Namespace, container.Pod, container.Name, which)
 	if err != nil {
 		return err
 	}
@@ -346,14 +332,4 @@ func (g *Gatherer) gatherContainerLog(container containerInfo, previous bool) er
 
 	_, err = io.Copy(dst, src)
 	return err
-}
-
-func (g *Gatherer) createContainerDirectory(container containerInfo) (string, error) {
-	dir := filepath.Join(g.directory, "namespaces", container.Namespace, "pods",
-		container.Pod, container.Name)
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return "", err
-	}
-
-	return dir, nil
 }
