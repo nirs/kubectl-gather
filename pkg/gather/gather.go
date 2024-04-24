@@ -86,13 +86,9 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 
 	output := OutputDirectory{base: filepath.Join(directory, opts.Context)}
 
-	logs, err := NewLogsAddon(restConfig, httpClient, &output)
+	addons, err := createAddons(restConfig, httpClient, &output)
 	if err != nil {
 		return nil, err
-	}
-
-	addons := map[string]Addon{
-		"pods": logs,
 	}
 
 	return &Gatherer{
