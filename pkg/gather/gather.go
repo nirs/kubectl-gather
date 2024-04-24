@@ -27,10 +27,14 @@ type Options struct {
 	Verbose   bool
 }
 
+type Addon interface {
+	Gather(*unstructured.Unstructured) error
+}
+
 type Gatherer struct {
 	discoveryClient *discovery.DiscoveryClient
 	resourcesClient *dynamic.DynamicClient
-	logsGatherer    *LogsGatherer
+	addons          map[string]Addon
 	output          OutputDirectory
 	opts            *Options
 }
@@ -82,15 +86,19 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 
 	output := OutputDirectory{base: filepath.Join(directory, opts.Context)}
 
-	logsGatherer, err := NewLogsGatherer(restConfig, httpClient, &output)
+	logs, err := NewLogsAddon(restConfig, httpClient, &output)
 	if err != nil {
 		return nil, err
+	}
+
+	addons := map[string]Addon{
+		"pods": logs,
 	}
 
 	return &Gatherer{
 		discoveryClient: discoveryClient,
 		resourcesClient: resourcesClient,
-		logsGatherer:    logsGatherer,
+		addons:          addons,
 		output:          output,
 		opts:            &opts,
 	}, nil
@@ -155,15 +163,18 @@ func (g *Gatherer) gatherResources(r *resourceInfo) error {
 		return err
 	}
 
+	addon := g.addons[r.Name()]
+
 	for i := range list.Items {
 		item := &list.Items[i]
+
 		err := g.dumpResource(r, item)
 		if err != nil {
 			return err
 		}
 
-		if r.Name() == "pods" {
-			err := g.logsGatherer.Gather(item)
+		if addon != nil {
+			err := addon.Gather(item)
 			if err != nil {
 				return err
 			}

@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type LogsGatherer struct {
+type LogsAddon struct {
 	client *rest.RESTClient
 	output *OutputDirectory
 }
@@ -25,7 +25,7 @@ type containerInfo struct {
 	Name      string
 }
 
-func NewLogsGatherer(config *rest.Config, httpClient *http.Client, output *OutputDirectory) (*LogsGatherer, error) {
+func NewLogsAddon(config *rest.Config, httpClient *http.Client, output *OutputDirectory) (*LogsAddon, error) {
 	logsConfig := rest.CopyConfig(config)
 
 	logsConfig.APIPath = "api"
@@ -37,10 +37,10 @@ func NewLogsGatherer(config *rest.Config, httpClient *http.Client, output *Outpu
 		return nil, err
 	}
 
-	return &LogsGatherer{client: client, output: output}, nil
+	return &LogsAddon{client: client, output: output}, nil
 }
 
-func (g *LogsGatherer) Gather(pod *unstructured.Unstructured) error {
+func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 	containers, err := listContainers(pod)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (g *LogsGatherer) Gather(pod *unstructured.Unstructured) error {
 	return nil
 }
 
-func (g *LogsGatherer) gatherContainerLog(container containerInfo, previous bool) error {
+func (g *LogsAddon) gatherContainerLog(container containerInfo, previous bool) error {
 	var which string
 	if previous {
 		which = "previous"
