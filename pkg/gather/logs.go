@@ -14,6 +14,13 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type logType string
+
+const (
+	current  = logType("current")
+	previous = logType("previous")
+)
+
 type LogsAddon struct {
 	client *rest.RESTClient
 	output *OutputDirectory
@@ -47,34 +54,27 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 	}
 
 	for _, container := range containers {
-		if err := g.gatherContainerLog(container, false); err != nil {
+		if err := g.gatherContainerLog(container, current); err != nil {
 			return err
 		}
 
 		// This always fails with "previous terminated container not found",
 		// same as kubectl logs --previous. Ignoring errors since there is no
 		// way to detect if previous log exists or detect the specific error.
-		g.gatherContainerLog(container, true)
+		g.gatherContainerLog(container, previous)
 	}
 
 	return nil
 }
 
-func (g *LogsAddon) gatherContainerLog(container containerInfo, previous bool) error {
-	var which string
-	if previous {
-		which = "previous"
-	} else {
-		which = "current"
-	}
-
+func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) error {
 	req := g.client.Get().
 		Namespace(container.Namespace).
 		Resource("pods").
 		Name(container.Pod).
 		SubResource("log").
 		Param("container", container.Name)
-	if previous {
+	if which == previous {
 		req.Param("previous", "true")
 	}
 
@@ -85,7 +85,7 @@ func (g *LogsAddon) gatherContainerLog(container containerInfo, previous bool) e
 
 	defer src.Close()
 
-	dst, err := g.output.CreateContainerLog(container.Namespace, container.Pod, container.Name, which)
+	dst, err := g.output.CreateContainerLog(container.Namespace, container.Pod, container.Name, string(which))
 	if err != nil {
 		return err
 	}
