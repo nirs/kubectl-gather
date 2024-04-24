@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: The kubectl-gather authors
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package gather
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-type GatherOptions struct {
+type Options struct {
 	Context   string
 	Namespace string
 	Verbose   bool
@@ -37,7 +37,7 @@ type Gatherer struct {
 	resourcesClient *dynamic.DynamicClient
 	logsClient      *rest.RESTClient
 	directory       string
-	opts            *GatherOptions
+	opts            *Options
 }
 
 type resourceInfo struct {
@@ -60,7 +60,7 @@ type containerInfo struct {
 	Name      string
 }
 
-func NewGatherer(config *api.Config, directory string, opts GatherOptions) (*Gatherer, error) {
+func New(config *api.Config, directory string, opts Options) (*Gatherer, error) {
 	if opts.Context == "" {
 		opts.Context = config.CurrentContext
 	}

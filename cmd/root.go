@@ -8,12 +8,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/nirs/kubectl-gather/pkg/gather"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-var options GatherOptions
+var options gather.Options
 var kubeconfig string
 var directory string
 
@@ -38,7 +39,7 @@ var rootCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		g, err := NewGatherer(config, directory, options)
+		g, err := gather.New(config, directory, options)
 		if err != nil {
 			log.Fatal(err)
 		}
