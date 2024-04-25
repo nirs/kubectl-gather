@@ -12,6 +12,7 @@ import (
 const (
 	namespacesName = "namespaces"
 	clusterName    = "cluster"
+	addonsName     = "addons"
 )
 
 type OutputDirectory struct {
@@ -40,6 +41,11 @@ func (o *OutputDirectory) CreateClusterResource(resource string, name string) (i
 		return nil, err
 	}
 	return createFile(dir, name+".yaml")
+}
+
+func (o *OutputDirectory) CreateAddonDir(name string, more ...string) (string, error) {
+	args := append([]string{o.base, addonsName, name}, more...)
+	return createDirectory(args...)
 }
 
 func createDirectory(args ...string) (string, error) {
