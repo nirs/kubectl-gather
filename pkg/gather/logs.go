@@ -24,6 +24,7 @@ const (
 type LogsAddon struct {
 	client *rest.RESTClient
 	output *OutputDirectory
+	opts   *Options
 }
 
 type containerInfo struct {
@@ -32,7 +33,7 @@ type containerInfo struct {
 	Name      string
 }
 
-func NewLogsAddon(config *rest.Config, httpClient *http.Client, output *OutputDirectory) (*LogsAddon, error) {
+func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options) (*LogsAddon, error) {
 	logsConfig := rest.CopyConfig(config)
 
 	logsConfig.APIPath = "api"
@@ -44,7 +45,7 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, output *OutputDi
 		return nil, err
 	}
 
-	return &LogsAddon{client: client, output: output}, nil
+	return &LogsAddon{client: client, output: out, opts: opts}, nil
 }
 
 func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {

@@ -87,7 +87,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 
 	output := OutputDirectory{base: filepath.Join(directory, opts.Context)}
 
-	addons, err := createAddons(restConfig, httpClient, &output)
+	addons, err := createAddons(restConfig, httpClient, &output, &opts)
 	if err != nil {
 		return nil, err
 	}
