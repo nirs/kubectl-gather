@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	namespacesName = "namespaces"
-	clusterName    = "cluster"
-	addonsName     = "addons"
+	namespacesDir = "namespaces"
+	clusterDir    = "cluster"
+	addonsDir     = "addons"
 )
 
 type OutputDirectory struct {
@@ -20,7 +20,7 @@ type OutputDirectory struct {
 }
 
 func (o *OutputDirectory) CreateContainerLog(namespace string, pod string, container string, name string) (io.WriteCloser, error) {
-	dir, err := createDirectory(o.base, namespacesName, namespace, "pods", pod, container)
+	dir, err := createDirectory(o.base, namespacesDir, namespace, "pods", pod, container)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (o *OutputDirectory) CreateContainerLog(namespace string, pod string, conta
 }
 
 func (o *OutputDirectory) CreateNamespacedResource(namespace string, resource string, name string) (io.WriteCloser, error) {
-	dir, err := createDirectory(o.base, namespacesName, namespace, resource)
+	dir, err := createDirectory(o.base, namespacesDir, namespace, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (o *OutputDirectory) CreateNamespacedResource(namespace string, resource st
 }
 
 func (o *OutputDirectory) CreateClusterResource(resource string, name string) (io.WriteCloser, error) {
-	dir, err := createDirectory(o.base, clusterName, resource)
+	dir, err := createDirectory(o.base, clusterDir, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (o *OutputDirectory) CreateClusterResource(resource string, name string) (i
 }
 
 func (o *OutputDirectory) CreateAddonDir(name string, more ...string) (string, error) {
-	args := append([]string{o.base, addonsName, name}, more...)
+	args := append([]string{o.base, addonsDir, name}, more...)
 	return createDirectory(args...)
 }
 
