@@ -57,10 +57,10 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&options.Kubeconfig, "kubeconfig", defaultKubeconfig(),
-		"the kubeconfig file to use")
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", defaultGatherDirectory(),
 		"directory for storing gathered data")
+	rootCmd.Flags().StringVar(&options.Kubeconfig, "kubeconfig", defaultKubeconfig(),
+		"the kubeconfig file to use")
 	rootCmd.Flags().StringVar(&options.Context, "context", "",
 		"the kubeconfig context of the cluster to gather data from")
 	rootCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "",
