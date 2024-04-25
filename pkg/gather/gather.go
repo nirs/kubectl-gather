@@ -22,9 +22,10 @@ import (
 )
 
 type Options struct {
-	Context   string
-	Namespace string
-	Verbose   bool
+	Kubeconfig string
+	Context    string
+	Namespace  string
+	Verbose    bool
 }
 
 type Addon interface {

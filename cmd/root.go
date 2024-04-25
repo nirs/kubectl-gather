@@ -15,7 +15,6 @@ import (
 )
 
 var options gather.Options
-var kubeconfig string
 var directory string
 
 var example = `  # Gather data from cluster 'my-cluster' to directory
@@ -34,7 +33,7 @@ var rootCmd = &cobra.Command{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		config, err := loadConfig(kubeconfig)
+		config, err := loadConfig(options.Kubeconfig)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -58,7 +57,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
+	rootCmd.Flags().StringVar(&options.Kubeconfig, "kubeconfig", defaultKubeconfig(),
 		"the kubeconfig file to use")
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", defaultGatherDirectory(),
 		"directory for storing gathered data")
