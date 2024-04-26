@@ -10,6 +10,7 @@ import (
 	"log"
 	"path/filepath"
 	"slices"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -105,6 +106,8 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 }
 
 func (g *Gatherer) Gather() error {
+	start := time.Now()
+
 	resources, err := g.listAPIResources()
 	if err != nil {
 		return err
@@ -117,10 +120,14 @@ func (g *Gatherer) Gather() error {
 		}
 	}
 
+	g.log.Printf("Gathered %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
+
 	return nil
 }
 
 func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
+	start := time.Now()
+
 	items, err := g.discoveryClient.ServerPreferredResources()
 	if err != nil {
 		return nil, err
@@ -154,10 +161,14 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 		}
 	}
 
+	g.log.Printf("Listed %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
+
 	return resources, nil
 }
 
 func (g *Gatherer) gatherResources(r *resourceInfo) error {
+	start := time.Now()
+
 	list, err := g.listResources(r)
 	if err != nil {
 		return err
@@ -181,10 +192,14 @@ func (g *Gatherer) gatherResources(r *resourceInfo) error {
 		}
 	}
 
+	g.log.Printf("Gathered %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+
 	return nil
 }
 
 func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredList, error) {
+	start := time.Now()
+
 	var gvr = schema.GroupVersionResource{
 		Group:    r.GroupVersion.Group,
 		Version:  r.GroupVersion.Version,
@@ -205,6 +220,8 @@ func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredLis
 	if err != nil {
 		return nil, err
 	}
+
+	g.log.Printf("Listed %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 
 	return list, nil
 }

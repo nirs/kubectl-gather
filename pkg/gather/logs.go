@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -56,6 +57,8 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 }
 
 func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
+	start := time.Now()
+
 	containers, err := listContainers(pod)
 	if err != nil {
 		return err
@@ -72,10 +75,15 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 		g.gatherContainerLog(container, previous)
 	}
 
+	g.log.Printf("Gathered logs %s/%s in %.3f seconds",
+		pod.GetNamespace(), pod.GetName(), time.Since(start).Seconds())
+
 	return nil
 }
 
 func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) error {
+	start := time.Now()
+
 	req := g.client.Get().
 		Namespace(container.Namespace).
 		Resource("pods").
@@ -100,7 +108,13 @@ func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) e
 
 	defer dst.Close()
 
-	_, err = io.Copy(dst, src)
+	n, err := io.Copy(dst, src)
+
+	elapsed := time.Since(start).Seconds()
+	rate := float64(n) / float64(1024*1024) / elapsed
+	g.log.Printf("Gathered %s logs %s/%s/%s in %.3f seconds (%.2f MiB/s)",
+		which, container.Namespace, container.Pod, container.Name, elapsed, rate)
+
 	return err
 }
 

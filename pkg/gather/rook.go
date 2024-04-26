@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,16 +41,22 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 }
 
 func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
+	start := time.Now()
+
 	namespace := cephcluster.GetNamespace()
 	a.log.Printf("Gathering data for cephcluster %s/%s", namespace, cephcluster.GetName())
 
 	a.gatherCommands(namespace)
 	a.gatherLogs(namespace)
 
+	a.log.Printf("Gathered %s data in %.3f seconds", a.name, time.Since(start).Seconds())
+
 	return nil
 }
 
 func (a *RookAddon) gatherCommands(namespace string) {
+	start := time.Now()
+
 	tools, err := a.findPod(namespace, "app=rook-ceph-tools")
 	if err != nil {
 		a.log.Printf("Cannot find rook-ceph-tools pod: %s", err)
@@ -77,9 +84,13 @@ func (a *RookAddon) gatherCommands(namespace string) {
 	if err != nil {
 		a.log.Printf("Error running 'ceph osd blocklist ls': %s", err)
 	}
+
+	a.log.Printf("Gathered %s commands in %.3f seconds", a.name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) gatherLogs(namespace string) {
+	start := time.Now()
+
 	a.log.Printf("Gathering ceph logs")
 
 	mgr, err := a.findPod(namespace, "app=rook-ceph-mgr")
@@ -103,6 +114,8 @@ func (a *RookAddon) gatherLogs(namespace string) {
 	if err := rd.Gather("/var/log/ceph", logs); err != nil {
 		a.log.Printf("Cannot copy /var/log/ceph in pod %s: %s", mgr.Name, err)
 	}
+
+	a.log.Printf("Gathered %s logs in %.3f seconds", a.name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod, error) {
