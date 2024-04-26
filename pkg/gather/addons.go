@@ -15,8 +15,14 @@ func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory
 		return nil, err
 	}
 
+	rookAddon, err := NewRookCephAddon(config, client, out, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	registry := map[string]Addon{
-		"pods": logsAddon,
+		"pods":                      logsAddon,
+		"cephclusters.ceph.rook.io": rookAddon,
 	}
 
 	return registry, nil
