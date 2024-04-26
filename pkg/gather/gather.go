@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"io"
+	"log"
 	"path/filepath"
 	"slices"
 
@@ -38,6 +39,7 @@ type Gatherer struct {
 	addons          map[string]Addon
 	output          OutputDirectory
 	opts            *Options
+	log             *log.Logger
 }
 
 type resourceInfo struct {
@@ -98,6 +100,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		addons:          addons,
 		output:          output,
 		opts:            &opts,
+		log:             createLogger("main", &opts),
 	}, nil
 }
 

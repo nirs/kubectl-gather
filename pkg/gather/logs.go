@@ -6,6 +6,7 @@ package gather
 import (
 	"context"
 	"io"
+	"log"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ type LogsAddon struct {
 	client *rest.RESTClient
 	output *OutputDirectory
 	opts   *Options
+	log    *log.Logger
 }
 
 type containerInfo struct {
@@ -45,7 +47,12 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 		return nil, err
 	}
 
-	return &LogsAddon{client: client, output: out, opts: opts}, nil
+	return &LogsAddon{
+		client: client,
+		output: out,
+		opts:   opts,
+		log:    createLogger("logs", opts),
+	}, nil
 }
 
 func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
