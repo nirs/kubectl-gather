@@ -32,21 +32,7 @@ var rootCmd = &cobra.Command{
 	Annotations: map[string]string{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		config, err := loadConfig(options.Kubeconfig)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		g, err := gather.New(config, directory, options)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := g.Gather(); err != nil {
-			log.Fatal(err)
-		}
-	},
+	Run: gatherAll,
 }
 
 func Execute() {
@@ -67,6 +53,22 @@ func init() {
 		"namespace to gather data from")
 	rootCmd.Flags().BoolVarP(&options.Verbose, "verbose", "v", false,
 		"be more verbose")
+}
+
+func gatherAll(cmd *cobra.Command, args []string) {
+	config, err := loadConfig(options.Kubeconfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	g, err := gather.New(config, directory, options)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := g.Gather(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func defaultKubeconfig() string {
