@@ -16,21 +16,20 @@ import (
 
 var directory string
 var kubeconfig string
-var context string
+var contexts []string
 var namespace string
 var verbose bool
 
-var example = `  # Gather data from cluster 'my-cluster' to directory
-  # 'gather/my-cluster':
-  kubectl gather --context my-cluster
+var example = `  # Gather data from clusters "dr1", "dr2" and "hub" and store it
+  # in directory "gather/".
+  kubectl gather --directory gather --contexts dr1,dr2,hub
 
-  # Gather data from namespace 'my-namespace' in cluster 'my-cluster'
-  # and store in directroy 'gather/my-cluster/namespaces/my-namespace':
-  kubectl gather --context foo --namespace my-namespace`
+  # Gather data from namespace "rook-ceph" in cluster "dr1"
+  kubectl gather --directory gather --contexts dr1 --namespace rook-ceph`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
-	Short:   "Gather data from a cluster",
+	Short:   "Gather data from clusters",
 	Example: example,
 	Annotations: map[string]string{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
@@ -50,8 +49,8 @@ func init() {
 		"directory for storing gathered data")
 	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
 		"the kubeconfig file to use")
-	rootCmd.Flags().StringVar(&context, "context", "",
-		"the kubeconfig context of the cluster to gather data from")
+	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
+		"command separate list of contexts to gather data from")
 	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "",
 		"namespace to gather data from")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
@@ -64,19 +63,21 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	options := gather.Options{
-		Kubeconfig: kubeconfig,
-		Context:    context,
-		Namespace:  namespace,
-		Verbose:    verbose,
-	}
-	g, err := gather.New(config, directory, options)
-	if err != nil {
-		log.Fatal(err)
-	}
+	for _, context := range contexts {
+		options := gather.Options{
+			Kubeconfig: kubeconfig,
+			Context:    context,
+			Namespace:  namespace,
+			Verbose:    verbose,
+		}
+		g, err := gather.New(config, directory, options)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := g.Gather(); err != nil {
-		log.Fatal(err)
+		if err := g.Gather(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
