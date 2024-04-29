@@ -14,8 +14,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-var options gather.Options
 var directory string
+var kubeconfig string
+var context string
+var namespace string
+var verbose bool
 
 var example = `  # Gather data from cluster 'my-cluster' to directory
   # 'gather/my-cluster':
@@ -45,22 +48,28 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", defaultGatherDirectory(),
 		"directory for storing gathered data")
-	rootCmd.Flags().StringVar(&options.Kubeconfig, "kubeconfig", defaultKubeconfig(),
+	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
 		"the kubeconfig file to use")
-	rootCmd.Flags().StringVar(&options.Context, "context", "",
+	rootCmd.Flags().StringVar(&context, "context", "",
 		"the kubeconfig context of the cluster to gather data from")
-	rootCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "",
+	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "",
 		"namespace to gather data from")
-	rootCmd.Flags().BoolVarP(&options.Verbose, "verbose", "v", false,
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 }
 
 func gatherAll(cmd *cobra.Command, args []string) {
-	config, err := loadConfig(options.Kubeconfig)
+	config, err := loadConfig(kubeconfig)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	options := gather.Options{
+		Kubeconfig: kubeconfig,
+		Context:    context,
+		Namespace:  namespace,
+		Verbose:    verbose,
+	}
 	g, err := gather.New(config, directory, options)
 	if err != nil {
 		log.Fatal(err)
