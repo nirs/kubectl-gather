@@ -6,6 +6,7 @@ package cmd
 import (
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
@@ -63,6 +64,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	wg := sync.WaitGroup{}
+	errors := make(chan error, len(contexts))
+
 	for _, context := range contexts {
 		options := gather.Options{
 			Kubeconfig: kubeconfig,
@@ -70,14 +74,26 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			Namespace:  namespace,
 			Verbose:    verbose,
 		}
-		g, err := gather.New(config, directory, options)
-		if err != nil {
-			log.Fatal(err)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			g, err := gather.New(config, directory, options)
+			if err != nil {
+				errors <- err
+				return
+			}
 
-		if err := g.Gather(); err != nil {
-			log.Fatal(err)
-		}
+			if err := g.Gather(); err != nil {
+				errors <- err
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errors)
+
+	for err := range errors {
+		log.Fatal(err)
 	}
 }
 
