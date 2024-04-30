@@ -9,13 +9,13 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options) (map[string]Addon, error) {
-	logsAddon, err := NewLogsAddon(config, client, out, opts)
+func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (map[string]Addon, error) {
+	logsAddon, err := NewLogsAddon(config, client, out, opts, q)
 	if err != nil {
 		return nil, err
 	}
 
-	rookAddon, err := NewRookCephAddon(config, client, out, opts)
+	rookAddon, err := NewRookCephAddon(config, client, out, opts, q)
 	if err != nil {
 		return nil, err
 	}

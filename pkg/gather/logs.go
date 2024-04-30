@@ -27,6 +27,7 @@ type LogsAddon struct {
 	client *rest.RESTClient
 	output *OutputDirectory
 	opts   *Options
+	q      Queuer
 	log    *log.Logger
 }
 
@@ -36,7 +37,7 @@ type containerInfo struct {
 	Name      string
 }
 
-func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options) (*LogsAddon, error) {
+func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*LogsAddon, error) {
 	logsConfig := rest.CopyConfig(config)
 
 	logsConfig.APIPath = "api"
@@ -52,31 +53,31 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 		client: client,
 		output: out,
 		opts:   opts,
+		q:      q,
 		log:    createLogger("logs", opts),
 	}, nil
 }
 
 func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
-	start := time.Now()
-
 	containers, err := listContainers(pod)
 	if err != nil {
 		return err
 	}
 
 	for _, container := range containers {
-		if err := g.gatherContainerLog(container, current); err != nil {
-			return err
-		}
+		g.q.Queue(func() error {
+			return g.gatherContainerLog(container, current)
+		})
 
-		// This always fails with "previous terminated container not found",
-		// same as kubectl logs --previous. Ignoring errors since there is no
-		// way to detect if previous log exists or detect the specific error.
-		g.gatherContainerLog(container, previous)
+		g.q.Queue(func() error {
+			// This typically fails with "previous terminated container not
+			// found", same as kubectl logs --previous. Ignoring errors since
+			// there is no way to detect if previous log exists or detect the
+			// specific error.
+			g.gatherContainerLog(container, previous)
+			return nil
+		})
 	}
-
-	g.log.Printf("Gathered logs %s/%s in %.3f seconds",
-		pod.GetNamespace(), pod.GetName(), time.Since(start).Seconds())
 
 	return nil
 }

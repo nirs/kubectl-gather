@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,11 +22,12 @@ type RookAddon struct {
 	name   string
 	out    *OutputDirectory
 	opts   *Options
+	q      Queuer
 	client *kubernetes.Clientset
 	log    *log.Logger
 }
 
-func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options) (*RookAddon, error) {
+func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*RookAddon, error) {
 	clientSet, err := kubernetes.NewForConfigAndClient(config, client)
 	if err != nil {
 		return nil, err
@@ -35,28 +37,30 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 		name:   "rook-ceph",
 		out:    out,
 		opts:   opts,
+		q:      q,
 		client: clientSet,
 		log:    createLogger("rook", opts),
 	}, nil
 }
 
 func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
-	start := time.Now()
-
 	namespace := cephcluster.GetNamespace()
 	a.log.Printf("Gathering data for cephcluster %s/%s", namespace, cephcluster.GetName())
 
-	a.gatherCommands(namespace)
-	a.gatherLogs(namespace)
+	a.q.Queue(func() error {
+		a.gatherCommands(namespace)
+		return nil
+	})
 
-	a.log.Printf("Gathered %s data in %.3f seconds", a.name, time.Since(start).Seconds())
+	a.q.Queue(func() error {
+		a.gatherLogs(namespace)
+		return nil
+	})
 
 	return nil
 }
 
 func (a *RookAddon) gatherCommands(namespace string) {
-	start := time.Now()
-
 	tools, err := a.findPod(namespace, "app=rook-ceph-tools")
 	if err != nil {
 		a.log.Printf("Cannot find rook-ceph-tools pod: %s", err)
@@ -75,17 +79,23 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	rc := a.remoteCommand(tools, commands)
 
-	err = rc.Gather("ceph", "status")
-	if err != nil {
-		a.log.Printf("Error running 'ceph status': %s", err)
-	}
+	// Running remove ceph commands in parallel is much faster.
 
-	err = rc.Gather("ceph", "osd", "blocklist", "ls")
-	if err != nil {
-		a.log.Printf("Error running 'ceph osd blocklist ls': %s", err)
-	}
+	a.q.Queue(func() error {
+		a.gatherCommand(rc, "ceph", "osd", "blocklist", "ls")
+		return nil
+	})
 
-	a.log.Printf("Gathered %s commands in %.3f seconds", a.name, time.Since(start).Seconds())
+	a.gatherCommand(rc, "ceph", "status")
+}
+
+func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
+	name := strings.Join(command, " ")
+	start := time.Now()
+	if err := rc.Gather(command...); err != nil {
+		a.log.Printf("Error running %q: %s", name, err)
+	}
+	a.log.Printf("Gathered %q in %.3f seconds", name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) gatherLogs(namespace string) {

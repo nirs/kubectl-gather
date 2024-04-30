@@ -40,6 +40,7 @@ type Gatherer struct {
 	addons          map[string]Addon
 	output          OutputDirectory
 	opts            *Options
+	wq              *WorkQueue
 	log             *log.Logger
 }
 
@@ -90,7 +91,10 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 
 	output := OutputDirectory{base: filepath.Join(directory, opts.Context)}
 
-	addons, err := createAddons(restConfig, httpClient, &output, &opts)
+	// TODO: make configurable
+	wq := NewWorkQueue(6, 500)
+
+	addons, err := createAddons(restConfig, httpClient, &output, &opts, wq)
 	if err != nil {
 		return nil, err
 	}
@@ -101,13 +105,20 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		addons:          addons,
 		output:          output,
 		opts:            &opts,
+		wq:              wq,
 		log:             createLogger("main", &opts),
 	}, nil
 }
 
 func (g *Gatherer) Gather() error {
-	start := time.Now()
+	g.wq.Start()
+	g.wq.Queue(func() error {
+		return g.gatherAPIResources()
+	})
+	return g.wq.Wait()
+}
 
+func (g *Gatherer) gatherAPIResources() error {
 	resources, err := g.listAPIResources()
 	if err != nil {
 		return err
@@ -115,12 +126,10 @@ func (g *Gatherer) Gather() error {
 
 	for i := range resources {
 		r := &resources[i]
-		if err := g.gatherResources(r); err != nil {
-			return err
-		}
+		g.wq.Queue(func() error {
+			return g.gatherResources(r)
+		})
 	}
-
-	g.log.Printf("Gathered %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
 
 	return nil
 }
@@ -198,8 +207,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo) error {
 		}
 
 		if addon != nil {
-			err := addon.Gather(item)
-			if err != nil {
+			if err := addon.Gather(item); err != nil {
 				return err
 			}
 		}
