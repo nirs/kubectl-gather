@@ -152,9 +152,17 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 				continue
 			}
 
-			// If we gather specific namespace, we must use only namespaced resources.
-			if g.opts.Namespace != "" && !res.Namespaced {
-				continue
+			if g.opts.Namespace != "" {
+				// If we gather specific namespace, we must use only namespaced resources.
+				if !res.Namespaced {
+					continue
+				}
+
+				// olm bug? - returned for *every namespace* when listing by namespace.
+				// https://github.com/operator-framework/operator-lifecycle-manager/issues/2932
+				if res.Name == "packagemanifests" && gv.Group == "packages.operators.coreos.com" {
+					continue
+				}
 			}
 
 			resources = append(resources, resourceInfo{GroupVersion: &gv, APIResource: res})
