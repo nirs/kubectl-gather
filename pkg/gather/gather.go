@@ -165,6 +165,11 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 				}
 			}
 
+			// Avoid warning: "v1 ComponentStatus is deprecated in v1.19+"
+			if res.Name == "componentstatuses" && gv.Group == "" {
+				continue
+			}
+
 			resources = append(resources, resourceInfo{GroupVersion: &gv, APIResource: res})
 		}
 	}
