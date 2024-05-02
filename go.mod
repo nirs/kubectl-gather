@@ -3,7 +3,8 @@ module github.com/nirs/kubectl-gather
 go 1.22.0
 
 require (
-	github.com/spf13/cobra v1.8.0
+	// For runable plugin name fix: https://github.com/spf13/cobra/pull/2070
+	github.com/spf13/cobra v1.8.1-0.20231218005857-41227856cd73
 	k8s.io/client-go v0.30.0
 )
 
@@ -45,7 +46,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.30.0 // indirect
+	k8s.io/api v0.30.0
 	k8s.io/apimachinery v0.30.0
 	k8s.io/cli-runtime v0.30.0
 	k8s.io/klog/v2 v2.120.1 // indirect
