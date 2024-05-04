@@ -155,34 +155,7 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 
 		for i := range list.APIResources {
 			res := &list.APIResources[i]
-
-			// We cannot gather resources we cannot list.
-			if !slices.Contains(res.Verbs, "list") {
-				continue
-			}
-
-			if g.opts.Namespace != "" {
-				// If we gather specific namespace, we must use only namespaced resources.
-				if !res.Namespaced {
-					continue
-				}
-
-				// olm bug? - returned for *every namespace* when listing by namespace.
-				// https://github.com/operator-framework/operator-lifecycle-manager/issues/2932
-				if res.Name == "packagemanifests" && gv.Group == "packages.operators.coreos.com" {
-					continue
-				}
-			}
-
-			// Skip "events", replaced by "events.events.k8s.io".  Otherwise we
-			// get all events twice, as "events" and as "events.events.k8s.io",
-			// both resources contain the same content.
-			if res.Name == "events" && gv.Group == "" {
-				continue
-			}
-
-			// Avoid warning: "v1 ComponentStatus is deprecated in v1.19+"
-			if res.Name == "componentstatuses" && gv.Group == "" {
+			if !g.shouldGather(gv, res) {
 				continue
 			}
 
@@ -193,6 +166,40 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	g.log.Printf("Listed %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
 
 	return resources, nil
+}
+
+func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource) bool {
+	// We cannot gather resources we cannot list.
+	if !slices.Contains(res.Verbs, "list") {
+		return false
+	}
+
+	if g.opts.Namespace != "" {
+		// If we gather specific namespace, we must use only namespaced resources.
+		if !res.Namespaced {
+			return false
+		}
+
+		// olm bug? - returned for *every namespace* when listing by namespace.
+		// https://github.com/operator-framework/operator-lifecycle-manager/issues/2932
+		if res.Name == "packagemanifests" && gv.Group == "packages.operators.coreos.com" {
+			return false
+		}
+	}
+
+	// Skip "events", replaced by "events.events.k8s.io".  Otherwise we
+	// get all events twice, as "events" and as "events.events.k8s.io",
+	// both resources contain the same content.
+	if res.Name == "events" && gv.Group == "" {
+		return false
+	}
+
+	// Avoid warning: "v1 ComponentStatus is deprecated in v1.19+"
+	if res.Name == "componentstatuses" && gv.Group == "" {
+		return false
+	}
+
+	return true
 }
 
 func (g *Gatherer) gatherResources(r *resourceInfo) error {
