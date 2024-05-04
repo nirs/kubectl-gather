@@ -113,8 +113,8 @@ func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) e
 
 	elapsed := time.Since(start).Seconds()
 	rate := float64(n) / float64(1024*1024) / elapsed
-	g.log.Printf("Gathered %s logs %s/%s/%s in %.3f seconds (%.2f MiB/s)",
-		which, container.Namespace, container.Pod, container.Name, elapsed, rate)
+	g.log.Printf("Gathered %s/%s/%s/%s.log in %.3f seconds (%.2f MiB/s)",
+		container.Namespace, container.Pod, container.Name, which, elapsed, rate)
 
 	return err
 }

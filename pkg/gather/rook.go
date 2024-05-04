@@ -90,18 +90,16 @@ func (a *RookAddon) gatherCommands(namespace string) {
 }
 
 func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
-	name := strings.Join(command, " ")
+	name := strings.Join(command, "-")
 	start := time.Now()
 	if err := rc.Gather(command...); err != nil {
 		a.log.Printf("Error running %q: %s", name, err)
 	}
-	a.log.Printf("Gathered %q in %.3f seconds", name, time.Since(start).Seconds())
+	a.log.Printf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) gatherLogs(namespace string) {
 	start := time.Now()
-
-	a.log.Printf("Gathering ceph logs")
 
 	mgr, err := a.findPod(namespace, "app=rook-ceph-mgr")
 	if err != nil {
@@ -125,7 +123,7 @@ func (a *RookAddon) gatherLogs(namespace string) {
 		a.log.Printf("Cannot copy /var/log/ceph in pod %s: %s", mgr.Name, err)
 	}
 
-	a.log.Printf("Gathered %s logs in %.3f seconds", a.name, time.Since(start).Seconds())
+	a.log.Printf("Gathered logs in %.3f seconds", time.Since(start).Seconds())
 }
 
 func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod, error) {
