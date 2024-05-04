@@ -174,6 +174,13 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 				}
 			}
 
+			// Skip "events", replaced by "events.events.k8s.io".  Otherwise we
+			// get all events twice, as "events" and as "events.events.k8s.io",
+			// both resources contain the same content.
+			if res.Name == "events" && gv.Group == "" {
+				continue
+			}
+
 			// Avoid warning: "v1 ComponentStatus is deprecated in v1.19+"
 			if res.Name == "componentstatuses" && gv.Group == "" {
 				continue
