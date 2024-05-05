@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func createLogger(name string, opts *Options) *log.Logger {
+func NewLogger(name string, opts *Options) *log.Logger {
 	if opts.Verbose {
 		prefix := fmt.Sprintf("%s/%s: ", opts.Context, name)
 		return log.New(os.Stderr, prefix, log.LstdFlags|log.Lmicroseconds)

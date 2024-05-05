@@ -106,7 +106,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		output:          output,
 		opts:            &opts,
 		wq:              wq,
-		log:             createLogger("main", &opts),
+		log:             NewLogger("main", &opts),
 	}, nil
 }
 

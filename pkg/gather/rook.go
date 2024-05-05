@@ -39,7 +39,7 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 		opts:   opts,
 		q:      q,
 		client: clientSet,
-		log:    createLogger("rook", opts),
+		log:    NewLogger("rook", opts),
 	}, nil
 }
 
