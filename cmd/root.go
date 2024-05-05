@@ -4,12 +4,14 @@
 package cmd
 
 import (
+	stdlog "log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -59,15 +61,16 @@ func init() {
 
 func gatherAll(cmd *cobra.Command, args []string) {
 	start := time.Now()
-	log := gather.NewLogger(verbose)
+	log := createLogger()
+	defer log.Sync()
 
 	if namespace != "" {
-		log.Printf("Gathering namespace %s", namespace)
+		log.Infof("Gathering namespace %q", namespace)
 	} else {
-		log.Print("Gathering all namespaces")
+		log.Infof("Gathering all namespaces")
 	}
 
-	log.Printf("Using kubeconfig %s", kubeconfig)
+	log.Infof("Using kubeconfig %q", kubeconfig)
 	config, err := loadConfig(kubeconfig)
 	if err != nil {
 		log.Fatal(err)
@@ -78,7 +81,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			log.Fatal("No context specified and current context not set")
 		}
 
-		log.Printf("Using current context %q", config.CurrentContext)
+		log.Infof("Using current context %q", config.CurrentContext)
 		contexts = append(contexts, config.CurrentContext)
 	}
 
@@ -86,11 +89,12 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	errors := make(chan error, len(contexts))
 
 	for _, context := range contexts {
+		log.Infof("Gathering cluster %q", context)
 		options := gather.Options{
 			Kubeconfig: kubeconfig,
 			Context:    context,
 			Namespace:  namespace,
-			Verbose:    verbose,
+			Log:        log.Named(context),
 		}
 		wg.Add(1)
 		go func() {
@@ -105,7 +109,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			if err := g.Gather(); err != nil {
 				errors <- err
 			}
-			log.Printf("Gathered cluster %s in %.3f seconds", options.Context, time.Since(start).Seconds())
+			log.Infof("Gathered cluster %q in %.3f seconds", options.Context, time.Since(start).Seconds())
 		}()
 	}
 
@@ -116,7 +120,25 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	log.Printf("Gathered %d clusters in %.3f seconds", len(contexts), time.Since(start).Seconds())
+	log.Infof("Gathered %d clusters in %.3f seconds", len(contexts), time.Since(start).Seconds())
+}
+
+func createLogger() *zap.SugaredLogger {
+	config := zap.NewDevelopmentConfig()
+
+	// Disable file:line annotation, not helpful in a tiny application.
+	config.DisableCaller = true
+
+	if !verbose {
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		stdlog.Fatalf("Cannot create logger: %s", err)
+	}
+
+	return logger.Named("gather").Sugar()
 }
 
 func defaultKubeconfig() string {

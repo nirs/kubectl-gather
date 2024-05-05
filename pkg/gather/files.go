@@ -6,12 +6,13 @@ package gather
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 type RemoteDirectory struct {
@@ -20,7 +21,7 @@ type RemoteDirectory struct {
 	Namespace  string
 	Pod        string
 	Container  string
-	Log        *log.Logger
+	Log        *zap.SugaredLogger
 }
 
 var tarFileChangedError *regexp.Regexp
@@ -124,7 +125,7 @@ func (d *RemoteDirectory) pathComponents(s string) int {
 
 func (d *RemoteDirectory) log(fmt string, args ...interface{}) {
 	if d.Log != nil {
-		d.Log.Printf(fmt, args...)
+		d.Log.Debugf(fmt, args...)
 	}
 }
 

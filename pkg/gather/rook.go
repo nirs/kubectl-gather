@@ -6,11 +6,11 @@ package gather
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -24,7 +24,7 @@ type RookAddon struct {
 	opts   *Options
 	q      Queuer
 	client *kubernetes.Clientset
-	log    *log.Logger
+	log    *zap.SugaredLogger
 }
 
 func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*RookAddon, error) {
@@ -39,13 +39,13 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 		opts:   opts,
 		q:      q,
 		client: clientSet,
-		log:    NewLogger(opts.Verbose, opts.Context, "rook"),
+		log:    opts.Log.Named("rook"),
 	}, nil
 }
 
 func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 	namespace := cephcluster.GetNamespace()
-	a.log.Printf("Gathering data for cephcluster %s/%s", namespace, cephcluster.GetName())
+	a.log.Debugf("Gathering data for cephcluster %s/%s", namespace, cephcluster.GetName())
 
 	a.q.Queue(func() error {
 		a.gatherCommands(namespace)
@@ -63,19 +63,19 @@ func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 func (a *RookAddon) gatherCommands(namespace string) {
 	tools, err := a.findPod(namespace, "app=rook-ceph-tools")
 	if err != nil {
-		a.log.Printf("Cannot find rook-ceph-tools pod: %s", err)
+		a.log.Debugf("Cannot find rook-ceph-tools pod: %s", err)
 		return
 	}
 
-	a.log.Printf("Using pod %s", tools.Name)
+	a.log.Debugf("Using pod %s", tools.Name)
 
 	commands, err := a.out.CreateAddonDir(a.name, "commands")
 	if err != nil {
-		a.log.Printf("Cannot create %s commnads directory: %s", a.name, err)
+		a.log.Debugf("Cannot create %s commnads directory: %s", a.name, err)
 		return
 	}
 
-	a.log.Printf("Storing commands output in %s", commands)
+	a.log.Debugf("Storing commands output in %s", commands)
 
 	rc := a.remoteCommand(tools, commands)
 
@@ -93,9 +93,9 @@ func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
 	name := strings.Join(command, "-")
 	start := time.Now()
 	if err := rc.Gather(command...); err != nil {
-		a.log.Printf("Error running %q: %s", name, err)
+		a.log.Debugf("Error running %q: %s", name, err)
 	}
-	a.log.Printf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
+	a.log.Debugf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) gatherLogs(namespace string) {
@@ -103,27 +103,27 @@ func (a *RookAddon) gatherLogs(namespace string) {
 
 	mgr, err := a.findPod(namespace, "app=rook-ceph-mgr")
 	if err != nil {
-		a.log.Printf("Cannot find rook-ceph-mgr pod: %s", err)
+		a.log.Debugf("Cannot find rook-ceph-mgr pod: %s", err)
 		return
 	}
 
-	a.log.Printf("Using pod %s", mgr.Name)
+	a.log.Debugf("Using pod %s", mgr.Name)
 
 	logs, err := a.out.CreateAddonDir(a.name, "logs")
 	if err != nil {
-		a.log.Printf("Cannot create %s logs directory: %s", a.name, err)
+		a.log.Debugf("Cannot create %s logs directory: %s", a.name, err)
 		return
 	}
 
-	a.log.Printf("Copying logs to %s", logs)
+	a.log.Debugf("Copying logs to %s", logs)
 
 	rd := a.remoteDirectory(mgr)
 
 	if err := rd.Gather("/var/log/ceph", logs); err != nil {
-		a.log.Printf("Cannot copy /var/log/ceph in pod %s: %s", mgr.Name, err)
+		a.log.Debugf("Cannot copy /var/log/ceph in pod %s: %s", mgr.Name, err)
 	}
 
-	a.log.Printf("Gathered logs in %.3f seconds", time.Since(start).Seconds())
+	a.log.Debugf("Gathered logs in %.3f seconds", time.Since(start).Seconds())
 }
 
 func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod, error) {

@@ -7,11 +7,11 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"log"
 	"path/filepath"
 	"slices"
 	"time"
 
+	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,7 +27,7 @@ type Options struct {
 	Kubeconfig string
 	Context    string
 	Namespace  string
-	Verbose    bool
+	Log        *zap.SugaredLogger
 }
 
 type Addon interface {
@@ -41,7 +41,7 @@ type Gatherer struct {
 	output          OutputDirectory
 	opts            *Options
 	wq              *WorkQueue
-	log             *log.Logger
+	log             *zap.SugaredLogger
 }
 
 type resourceInfo struct {
@@ -110,7 +110,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 		output:          output,
 		opts:            &opts,
 		wq:              wq,
-		log:             NewLogger(opts.Verbose, opts.Context),
+		log:             opts.Log,
 	}, nil
 }
 
@@ -167,7 +167,7 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 		}
 	}
 
-	g.log.Printf("Listed %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
+	g.log.Debugf("Listed %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
 
 	return resources, nil
 }
@@ -231,7 +231,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo) error {
 		}
 	}
 
-	g.log.Printf("Gathered %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+	g.log.Debugf("Gathered %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 
 	return nil
 }
@@ -260,7 +260,7 @@ func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredLis
 		return nil, err
 	}
 
-	g.log.Printf("Listed %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+	g.log.Debugf("Listed %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 
 	return list, nil
 }

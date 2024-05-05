@@ -6,10 +6,10 @@ package gather
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -28,7 +28,7 @@ type LogsAddon struct {
 	output *OutputDirectory
 	opts   *Options
 	q      Queuer
-	log    *log.Logger
+	log    *zap.SugaredLogger
 }
 
 type containerInfo struct {
@@ -54,7 +54,7 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 		output: out,
 		opts:   opts,
 		q:      q,
-		log:    NewLogger(opts.Verbose, opts.Context, "logs"),
+		log:    opts.Log.Named("logs"),
 	}, nil
 }
 
@@ -113,7 +113,7 @@ func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) e
 
 	elapsed := time.Since(start).Seconds()
 	rate := float64(n) / float64(1024*1024) / elapsed
-	g.log.Printf("Gathered %s/%s/%s/%s.log in %.3f seconds (%.2f MiB/s)",
+	g.log.Debugf("Gathered %s/%s/%s/%s.log in %.3f seconds (%.2f MiB/s)",
 		container.Namespace, container.Pod, container.Name, which, elapsed, rate)
 
 	return err
