@@ -74,6 +74,10 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 	restConfig.QPS = 50
 	restConfig.Burst = 100
 
+	// Disable the useless deprecated warnings.
+	// TODO: Make this configurable to allow arnings during development.
+	restConfig.WarningHandler = rest.NoWarnings{}
+
 	httpClient, err := rest.HTTPClientFor(restConfig)
 	if err != nil {
 		return nil, err
