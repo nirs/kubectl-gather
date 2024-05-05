@@ -64,6 +64,14 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	if len(contexts) == 0 {
+		if config.CurrentContext == "" {
+			log.Fatal("No context specified and current context not set")
+		}
+
+		contexts = append(contexts, config.CurrentContext)
+	}
+
 	wg := sync.WaitGroup{}
 	errors := make(chan error, len(contexts))
 
