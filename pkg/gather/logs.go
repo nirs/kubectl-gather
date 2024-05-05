@@ -54,7 +54,7 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 		output: out,
 		opts:   opts,
 		q:      q,
-		log:    NewLogger("logs", opts),
+		log:    NewLogger(opts.Verbose, opts.Context, "logs"),
 	}, nil
 }
 
