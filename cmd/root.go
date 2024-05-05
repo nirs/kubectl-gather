@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -59,6 +58,16 @@ func init() {
 }
 
 func gatherAll(cmd *cobra.Command, args []string) {
+	start := time.Now()
+	log := gather.NewLogger(verbose)
+
+	if namespace != "" {
+		log.Printf("Gathering namespace %s", namespace)
+	} else {
+		log.Print("Gathering all namespaces")
+	}
+
+	log.Printf("Using kubeconfig %s", kubeconfig)
 	config, err := loadConfig(kubeconfig)
 	if err != nil {
 		log.Fatal(err)
@@ -69,6 +78,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			log.Fatal("No context specified and current context not set")
 		}
 
+		log.Printf("Using current context %q", config.CurrentContext)
 		contexts = append(contexts, config.CurrentContext)
 	}
 
@@ -85,6 +95,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			start := time.Now()
 			g, err := gather.New(config, directory, options)
 			if err != nil {
 				errors <- err
@@ -94,6 +105,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			if err := g.Gather(); err != nil {
 				errors <- err
 			}
+			log.Printf("Gathered cluster %s in %.3f seconds", options.Context, time.Since(start).Seconds())
 		}()
 	}
 
@@ -103,6 +115,8 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	for err := range errors {
 		log.Fatal(err)
 	}
+
+	log.Printf("Gathered %d clusters in %.3f seconds", len(contexts), time.Since(start).Seconds())
 }
 
 func defaultKubeconfig() string {
