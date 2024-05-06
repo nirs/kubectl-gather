@@ -1,18 +1,18 @@
 module github.com/nirs/kubectl-gather
 
-go 1.22.0
+go 1.21.3
+
+toolchain go1.22.0
 
 require (
 	// For runable plugin name fix: https://github.com/spf13/cobra/pull/2070
 	github.com/spf13/cobra v1.8.1-0.20231218005857-41227856cd73
 	go.uber.org/zap v1.27.0
-	k8s.io/client-go v0.30.0
+	k8s.io/client-go v0.28.4
 )
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
-	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )
 
@@ -48,9 +48,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.30.0
-	k8s.io/apimachinery v0.30.0
-	k8s.io/cli-runtime v0.30.0
+	k8s.io/api v0.28.4
+	k8s.io/apimachinery v0.28.4
+	k8s.io/cli-runtime v0.28.4
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
