@@ -52,7 +52,7 @@ func init() {
 	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
 		"the kubeconfig file to use")
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
-		"command separate list of contexts to gather data from")
+		"comma separated list of contexts to gather data from")
 	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "",
 		"namespace to gather data from")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
