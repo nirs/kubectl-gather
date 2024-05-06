@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	// For runable plugin name fix: https://github.com/spf13/cobra/pull/2070
 	github.com/spf13/cobra v1.8.1-0.20231218005857-41227856cd73
+	go.uber.org/zap v1.27.0
 	k8s.io/client-go v0.30.0
 )
 
@@ -13,7 +14,6 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 )
 
 require (
