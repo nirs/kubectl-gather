@@ -2,8 +2,6 @@ module github.com/nirs/kubectl-gather
 
 go 1.21.3
 
-toolchain go1.22.0
-
 require (
 	// For runable plugin name fix: https://github.com/spf13/cobra/pull/2070
 	github.com/spf13/cobra v1.8.1-0.20231218005857-41227856cd73
