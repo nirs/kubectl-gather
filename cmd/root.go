@@ -22,12 +22,17 @@ var contexts []string
 var namespace string
 var verbose bool
 
-var example = `  # Gather data from clusters "dr1", "dr2" and "hub" and store it
-  # in directory "gather/".
+var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
+  # store it in gather-{timestamp}.
+  kubectl gather --kubeconfig my-kubeconfig
+
+  # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
+  # it in "gather/", using default kubeconfig (~/.kube/config).
   kubectl gather --directory gather --contexts dr1,dr2,hub
 
-  # Gather data from namespace "rook-ceph" in cluster "dr1"
-  kubectl gather --directory gather --contexts dr1 --namespace rook-ceph`
+  # Gather data from namespace "my-ns" in cluster "dr1" and store it in
+  # gather-my-ns/, using default kubeconfig (~/.kube/config).
+  kubectl gather --directory gather-my-ns --contexts dr1 --namespace my-ns`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
