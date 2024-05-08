@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -53,8 +55,14 @@ func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 	})
 
 	if a.logCollectorEnabled(cephcluster) {
+		dataDir, err := a.dataDirHostPath(cephcluster)
+		if err != nil {
+			a.log.Warn("Cannot get cephcluster dataDirHostPath: %s", err)
+			return nil
+		}
+
 		a.q.Queue(func() error {
-			a.gatherLogs(namespace)
+			a.gatherLogs(namespace, dataDir)
 			return nil
 		})
 	}
@@ -108,32 +116,111 @@ func (a *RookAddon) logCollectorEnabled(cephcluster *unstructured.Unstructured) 
 	return found && enabled
 }
 
-func (a *RookAddon) gatherLogs(namespace string) {
+func (a *RookAddon) dataDirHostPath(cephcluster *unstructured.Unstructured) (string, error) {
+	path, found, err := unstructured.NestedString(cephcluster.Object, "spec", "dataDirHostPath")
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		return "", fmt.Errorf("cannot find .spc.dataDirHostPath")
+	}
+	return path, nil
+}
+
+func (a *RookAddon) gatherLogs(namespace string, dataDir string) {
+	nodes, err := a.findNodesToGather(namespace)
+	if err != nil {
+		a.log.Warnf("Cannot find nodes: %s", err)
+		return
+	}
+
+	for _, nodeName := range nodes {
+		a.q.Queue(func() error {
+			a.gatherNodeLogs(nodeName, dataDir)
+			return nil
+		})
+	}
+}
+
+func (a *RookAddon) findNodesToGather(namespace string) ([]string, error) {
+	pods, err := a.client.CoreV1().
+		Pods(namespace).
+		List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	names := sets.New[string]()
+
+	for i := range pods.Items {
+		pod := &pods.Items[i]
+		if pod.Spec.NodeName != "" {
+			names.Insert(pod.Spec.NodeName)
+		}
+	}
+
+	return names.UnsortedList(), nil
+}
+
+func (a *RookAddon) gatherNodeLogs(nodeName string, dataDir string) {
+	a.log.Debugf("Gathering ceph logs from nodeName %s dataDir %s", nodeName, dataDir)
 	start := time.Now()
 
-	mgr, err := a.findPod(namespace, "app=rook-ceph-mgr")
+	agent, err := a.createAgentPod(nodeName, dataDir)
 	if err != nil {
-		a.log.Debugf("Cannot find rook-ceph-mgr pod: %s", err)
+		a.log.Warnf("Cannot create agent pod: %s", err)
+		return
+	}
+	defer agent.Delete()
+
+	if err := agent.WaitUntilRunning(); err != nil {
+		a.log.Warnf("Error waiting for agent pod: %s", err)
 		return
 	}
 
-	a.log.Debugf("Using pod %s", mgr.Name)
+	a.log.Debugf("Agent pod running in %.3f seconds", time.Since(start).Seconds())
 
-	logs, err := a.out.CreateAddonDir(a.name, "logs")
+	logs, err := a.out.CreateAddonDir(a.name, "logs", nodeName)
 	if err != nil {
-		a.log.Debugf("Cannot create %s logs directory: %s", a.name, err)
+		a.log.Debugf("Cannot create logs directory: %s", err)
 		return
 	}
 
-	a.log.Debugf("Copying logs to %s", logs)
+	rd := a.remoteDirectory(agent.Pod)
+	src := filepath.Join(dataDir, "rook-ceph", "log")
 
-	rd := a.remoteDirectory(mgr)
-
-	if err := rd.Gather("/var/log/ceph", logs); err != nil {
-		a.log.Debugf("Cannot copy /var/log/ceph in pod %s: %s", mgr.Name, err)
+	if err := rd.Gather(src, logs); err != nil {
+		a.log.Warnf("Cannot copy %s from agent pod %s: %s", src, agent.Pod.Name, err)
 	}
 
-	a.log.Debugf("Gathered logs in %.3f seconds", time.Since(start).Seconds())
+	a.log.Debugf("Gathered node %s logs in %.3f seconds", nodeName, time.Since(start).Seconds())
+}
+
+func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, error) {
+	agent := NewAgentPod(a.name+"-"+nodeName, a.client, a.log)
+	agent.Pod.Spec.NodeName = nodeName
+	agent.Pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      "rook-data",
+			MountPath: dataDir,
+			ReadOnly:  true,
+		},
+	}
+	agent.Pod.Spec.Volumes = []corev1.Volume{
+		{
+			Name: "rook-data",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{Path: dataDir},
+			},
+		},
+	}
+
+	if err := agent.Create(); err != nil {
+		a.log.Warnf("Cannot create agent pod: %s", err)
+		return nil, err
+	}
+
+	return agent, nil
 }
 
 func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod, error) {
