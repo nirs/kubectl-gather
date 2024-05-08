@@ -134,6 +134,9 @@ func createLogger() *zap.SugaredLogger {
 	// Disable file:line annotation, not helpful in a tiny application.
 	config.DisableCaller = true
 
+	// Disable stacktraces on WARN level message and unwanted panics.
+	config.Development = false
+
 	if !verbose {
 		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
