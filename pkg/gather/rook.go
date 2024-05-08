@@ -52,10 +52,12 @@ func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 		return nil
 	})
 
-	a.q.Queue(func() error {
-		a.gatherLogs(namespace)
-		return nil
-	})
+	if a.logCollectorEnabled(cephcluster) {
+		a.q.Queue(func() error {
+			a.gatherLogs(namespace)
+			return nil
+		})
+	}
 
 	return nil
 }
@@ -96,6 +98,14 @@ func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
 		a.log.Debugf("Error running %q: %s", name, err)
 	}
 	a.log.Debugf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
+}
+
+func (a *RookAddon) logCollectorEnabled(cephcluster *unstructured.Unstructured) bool {
+	enabled, found, err := unstructured.NestedBool(cephcluster.Object, "spec", "logCollector", "enabled")
+	if err != nil {
+		a.log.Warnf("Cannot get cephcluster .spec.logCollector.enabled: %s", err)
+	}
+	return found && enabled
 }
 
 func (a *RookAddon) gatherLogs(namespace string) {
