@@ -134,7 +134,8 @@ func (a *RookAddon) gatherLogs(namespace string, dataDir string) {
 		return
 	}
 
-	for _, nodeName := range nodes {
+	for i := range nodes {
+		nodeName := nodes[i]
 		a.q.Queue(func() error {
 			a.gatherNodeLogs(nodeName, dataDir)
 			return nil
