@@ -32,9 +32,11 @@ type LogsAddon struct {
 }
 
 type containerInfo struct {
-	Namespace string
-	Pod       string
-	Name      string
+	Namespace      string
+	Pod            string
+	Name           string
+	HasPreviousLog bool
+}
 }
 
 func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*LogsAddon, error) {
@@ -71,14 +73,12 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 			return g.gatherContainerLog(container, current)
 		})
 
-		g.q.Queue(func() error {
-			// This typically fails with "previous terminated container not
-			// found", same as kubectl logs --previous. Ignoring errors since
-			// there is no way to detect if previous log exists or detect the
-			// specific error.
-			g.gatherContainerLog(container, previous)
-			return nil
-		})
+		if container.HasPreviousLog {
+			g.q.Queue(func() error {
+				g.gatherContainerLog(container, previous)
+				return nil
+			})
+		}
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 }
 
 func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
-	containers, found, err := unstructured.NestedSlice(pod.Object, "spec", "containers")
+	statuses, found, err := unstructured.NestedSlice(pod.Object, "status", "containerStatuses")
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +133,13 @@ func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 
 	var result []*containerInfo
 
-	for _, c := range containers {
-		container, ok := c.(map[string]interface{})
+	for _, c := range statuses {
+		status, ok := c.(map[string]interface{})
 		if !ok {
 			return nil, nil
 		}
 
-		name, found, err := unstructured.NestedString(container, "name")
+		name, found, err := unstructured.NestedString(status, "name")
 		if err != nil {
 			return nil, err
 		}
@@ -149,11 +149,29 @@ func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 		}
 
 		result = append(result, &containerInfo{
-			Namespace: pod.GetNamespace(),
-			Pod:       pod.GetName(),
-			Name:      name,
+			Namespace:      pod.GetNamespace(),
+			Pod:            pod.GetName(),
+			Name:           name,
+			HasPreviousLog: containerHasPreviousLog(status),
 		})
 	}
 
 	return result, nil
+}
+
+// containerHasPreviousLog returns true if we can get a previous log for a
+// container, based on container status.
+//
+//	lastState:
+//	  terminated:
+//	    containerID: containerd://...
+//
+// See also https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kubelet_pods.go#L1453
+func containerHasPreviousLog(status map[string]interface{}) bool {
+	containerID, found, err := unstructured.NestedString(status, "lastState", "terminated", "containerID")
+	if err != nil || !found {
+		return false
+	}
+
+	return containerID != ""
 }
