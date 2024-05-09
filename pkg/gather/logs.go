@@ -64,7 +64,9 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 		return err
 	}
 
-	for _, container := range containers {
+	for i := range containers {
+		container := containers[i]
+
 		g.q.Queue(func() error {
 			return g.gatherContainerLog(container, current)
 		})
@@ -82,7 +84,7 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 	return nil
 }
 
-func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) error {
+func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) error {
 	start := time.Now()
 
 	req := g.client.Get().
@@ -119,7 +121,7 @@ func (g *LogsAddon) gatherContainerLog(container containerInfo, which logType) e
 	return err
 }
 
-func listContainers(pod *unstructured.Unstructured) ([]containerInfo, error) {
+func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 	containers, found, err := unstructured.NestedSlice(pod.Object, "spec", "containers")
 	if err != nil {
 		return nil, err
@@ -129,7 +131,7 @@ func listContainers(pod *unstructured.Unstructured) ([]containerInfo, error) {
 		return nil, nil
 	}
 
-	var result []containerInfo
+	var result []*containerInfo
 
 	for _, c := range containers {
 		container, ok := c.(map[string]interface{})
@@ -146,7 +148,7 @@ func listContainers(pod *unstructured.Unstructured) ([]containerInfo, error) {
 			continue
 		}
 
-		result = append(result, containerInfo{
+		result = append(result, &containerInfo{
 			Namespace: pod.GetNamespace(),
 			Pod:       pod.GetName(),
 			Name:      name,
