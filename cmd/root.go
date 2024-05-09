@@ -6,12 +6,14 @@ package cmd
 import (
 	stdlog "log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -129,24 +131,30 @@ func gatherAll(cmd *cobra.Command, args []string) {
 }
 
 func createLogger() *zap.SugaredLogger {
-	config := zap.NewDevelopmentConfig()
-
-	// Disable file:line annotation, not helpful in a tiny application.
-	config.DisableCaller = true
-
-	// Disable stacktraces on WARN level message and unwanted panics.
-	config.Development = false
-
-	if !verbose {
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	if err := os.MkdirAll(directory, 0750); err != nil {
+		stdlog.Fatalf("Cannot create directory: %s", err)
 	}
 
-	logger, err := config.Build()
+	logfile, err := os.Create(filepath.Join(directory, "gather.log"))
 	if err != nil {
-		stdlog.Fatalf("Cannot create logger: %s", err)
+		stdlog.Fatalf("Cannot create log file: %s", err)
 	}
 
-	return logger.Named("gather").Sugar()
+	config := zap.NewDevelopmentEncoderConfig()
+	config.CallerKey = ""
+	encoder := zapcore.NewConsoleEncoder(config)
+
+	consoleLevel := zapcore.InfoLevel
+	if verbose {
+		consoleLevel = zapcore.DebugLevel
+	}
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, zapcore.Lock(logfile), zapcore.DebugLevel),
+		zapcore.NewCore(encoder, zapcore.Lock(os.Stderr), consoleLevel),
+	)
+
+	return zap.New(core).Named("gather").Sugar()
 }
 
 func defaultKubeconfig() string {
