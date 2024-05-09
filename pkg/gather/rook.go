@@ -57,7 +57,7 @@ func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 	if a.logCollectorEnabled(cephcluster) {
 		dataDir, err := a.dataDirHostPath(cephcluster)
 		if err != nil {
-			a.log.Warn("Cannot get cephcluster dataDirHostPath: %s", err)
+			a.log.Warnf("Cannot get cephcluster dataDirHostPath: %s", err)
 			return nil
 		}
 
