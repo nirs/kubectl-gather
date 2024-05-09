@@ -6,6 +6,7 @@ package gather
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
 	"slices"
@@ -125,13 +126,15 @@ func (g *Gatherer) Gather() error {
 func (g *Gatherer) gatherAPIResources() error {
 	resources, err := g.listAPIResources()
 	if err != nil {
-		return err
+		// We cannot gather anything.
+		return fmt.Errorf("cannot list api resources: %s", err)
 	}
 
 	for i := range resources {
 		r := &resources[i]
 		g.wq.Queue(func() error {
-			return g.gatherResources(r)
+			g.gatherResources(r)
+			return nil
 		})
 	}
 
@@ -206,12 +209,13 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 	return true
 }
 
-func (g *Gatherer) gatherResources(r *resourceInfo) error {
+func (g *Gatherer) gatherResources(r *resourceInfo) {
 	start := time.Now()
 
 	list, err := g.listResources(r)
 	if err != nil {
-		return err
+		g.log.Warnf("Cannot list %s: %s", r.Name(), err)
+		return
 	}
 
 	addon := g.addons[r.Name()]
@@ -221,19 +225,18 @@ func (g *Gatherer) gatherResources(r *resourceInfo) error {
 
 		err := g.dumpResource(r, item)
 		if err != nil {
-			return err
+			g.log.Warnf("Cannot dump %s/%s: %s", r.Name(), item.GetName(), err)
 		}
 
 		if addon != nil {
 			if err := addon.Gather(item); err != nil {
-				return err
+				g.log.Warnf("Cannot gather additional data for %s/%s: %s",
+					r.Name(), item.GetName(), err)
 			}
 		}
 	}
 
 	g.log.Debugf("Gathered %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
-
-	return nil
 }
 
 func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredList, error) {
