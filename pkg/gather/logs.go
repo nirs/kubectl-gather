@@ -5,6 +5,7 @@ package gather
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -37,6 +38,9 @@ type containerInfo struct {
 	Name           string
 	HasPreviousLog bool
 }
+
+func (c containerInfo) String() string {
+	return c.Namespace + "/" + c.Pod + "/" + c.Name
 }
 
 func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*LogsAddon, error) {
@@ -63,14 +67,16 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 	containers, err := listContainers(pod)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannnot find containers in pod %s/%s: %s",
+			pod.GetNamespace(), pod.GetName(), err)
 	}
 
 	for i := range containers {
 		container := containers[i]
 
 		g.q.Queue(func() error {
-			return g.gatherContainerLog(container, current)
+			g.gatherContainerLog(container, current)
+			return nil
 		})
 
 		if container.HasPreviousLog {
@@ -84,7 +90,7 @@ func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
 	return nil
 }
 
-func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) error {
+func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) {
 	start := time.Now()
 
 	req := g.client.Get().
@@ -99,26 +105,36 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 
 	src, err := req.Stream(context.TODO())
 	if err != nil {
-		return err
+		// Getting the log is possible only if a container is running, but
+		// checking the container state before the call is racy. We get a
+		// BadRequest error like: "container ... in pod ... is waiting to start:
+		// PodInitializing" so there is no way to detect the actul problem.
+		// Since this is expected situation, and getting logs is best effort, we
+		// log this in debug level.
+		g.log.Debugf("Cannot get log for %s/%s: %+v", container, which, err)
+		return
 	}
 
 	defer src.Close()
 
-	dst, err := g.output.CreateContainerLog(container.Namespace, container.Pod, container.Name, string(which))
+	dst, err := g.output.CreateContainerLog(
+		container.Namespace, container.Pod, container.Name, string(which))
 	if err != nil {
-		return err
+		g.log.Warnf("Cannot create %s/%s.log: %s", container, which, err)
+		return
 	}
 
 	defer dst.Close()
 
 	n, err := io.Copy(dst, src)
+	if err != nil {
+		g.log.Warnf("Cannot copy %s/%s.log: %s", container, which, err)
+	}
 
 	elapsed := time.Since(start).Seconds()
 	rate := float64(n) / float64(1024*1024) / elapsed
-	g.log.Debugf("Gathered %s/%s/%s/%s.log in %.3f seconds (%.2f MiB/s)",
-		container.Namespace, container.Pod, container.Name, which, elapsed, rate)
-
-	return err
+	g.log.Debugf("Gathered %s/%s.log in %.3f seconds (%.2f MiB/s)",
+		container, which, elapsed, rate)
 }
 
 func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
