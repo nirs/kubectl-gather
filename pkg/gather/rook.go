@@ -137,7 +137,7 @@ func (a *RookAddon) gatherLogs(namespace string, dataDir string) {
 	for i := range nodes {
 		nodeName := nodes[i]
 		a.q.Queue(func() error {
-			a.gatherNodeLogs(nodeName, dataDir)
+			a.gatherNodeLogs(namespace, nodeName, dataDir)
 			return nil
 		})
 	}
@@ -163,7 +163,7 @@ func (a *RookAddon) findNodesToGather(namespace string) ([]string, error) {
 	return names.UnsortedList(), nil
 }
 
-func (a *RookAddon) gatherNodeLogs(nodeName string, dataDir string) {
+func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir string) {
 	a.log.Debugf("Gathering ceph logs from nodeName %s dataDir %s", nodeName, dataDir)
 	start := time.Now()
 
@@ -188,7 +188,7 @@ func (a *RookAddon) gatherNodeLogs(nodeName string, dataDir string) {
 	}
 
 	rd := a.remoteDirectory(agent.Pod)
-	src := filepath.Join(dataDir, "rook-ceph", "log")
+	src := filepath.Join(dataDir, namespace, "log")
 
 	if err := rd.Gather(src, logs); err != nil {
 		a.log.Warnf("Cannot copy %s from agent pod %s: %s", src, agent.Pod.Name, err)
