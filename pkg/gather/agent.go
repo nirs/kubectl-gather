@@ -26,6 +26,9 @@ type AgentPod struct {
 }
 
 func NewAgentPod(name string, client *kubernetes.Clientset, log *zap.SugaredLogger) *AgentPod {
+	privileged := true
+	root := int64(0)
+
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "gather-agent-" + name,
@@ -48,6 +51,11 @@ func NewAgentPod(name string, client *kubernetes.Clientset, log *zap.SugaredLogg
 					// cluster. We trap SIGTERM so it terminates immediatly when
 					// deleted.
 					Command: []string{"sh", "-c", "trap exit TERM; sleep 900"},
+
+					SecurityContext: &corev1.SecurityContext{
+						Privileged: &privileged,
+						RunAsUser:  &root,
+					},
 				},
 			},
 		},
