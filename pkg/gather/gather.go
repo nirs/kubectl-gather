@@ -10,6 +10,7 @@ import (
 	"io"
 	"path/filepath"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -46,6 +47,7 @@ type Gatherer struct {
 	opts            *Options
 	wq              *WorkQueue
 	log             *zap.SugaredLogger
+	count           atomic.Int32
 }
 
 type resourceInfo struct {
@@ -124,6 +126,10 @@ func (g *Gatherer) Gather() error {
 		return g.gatherAPIResources()
 	})
 	return g.wq.Wait()
+}
+
+func (g *Gatherer) Count() int32 {
+	return g.count.Load()
 }
 
 func (g *Gatherer) gatherAPIResources() error {
@@ -251,6 +257,8 @@ func (g *Gatherer) gatherResources(r *resourceInfo) {
 		g.log.Warnf("Cannot list %s: %s", r.Name(), err)
 		return
 	}
+
+	g.count.Add(int32(len(list.Items)))
 
 	addon := g.addons[r.Name()]
 

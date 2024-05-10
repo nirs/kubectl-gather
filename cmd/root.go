@@ -67,6 +67,11 @@ func init() {
 		"be more verbose")
 }
 
+type result struct {
+	Count int32
+	Err   error
+}
+
 func gatherAll(cmd *cobra.Command, args []string) {
 	start := time.Now()
 	log := createLogger()
@@ -98,7 +103,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	}
 
 	wg := sync.WaitGroup{}
-	errors := make(chan error, len(contexts))
+	results := make(chan result, len(contexts))
 
 	for _, context := range contexts {
 		log.Infof("Gathering cluster %q", context)
@@ -114,25 +119,41 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			start := time.Now()
 			g, err := gather.New(config, directory, options)
 			if err != nil {
-				errors <- err
+				results <- result{Err: err}
 				return
 			}
 
-			if err := g.Gather(); err != nil {
-				errors <- err
+			err = g.Gather()
+			results <- result{Count: g.Count(), Err: err}
+			if err != nil {
+				return
 			}
-			log.Infof("Gathered cluster %q in %.3f seconds", options.Context, time.Since(start).Seconds())
+
+			log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
+				g.Count(), options.Context, time.Since(start).Seconds())
+
 		}()
 	}
 
 	wg.Wait()
-	close(errors)
+	close(results)
 
-	for err := range errors {
-		log.Fatal(err)
+	count := int32(0)
+
+	for r := range results {
+		if r.Err != nil {
+			log.Fatal(r.Err)
+		}
+		count += r.Count
 	}
 
-	log.Infof("Gathered %d clusters in %.3f seconds", len(contexts), time.Since(start).Seconds())
+	if namespace != "" && count == 0 {
+		// Likely a user error like a wrong namespace.
+		log.Warnf("No resource gathered from namespace %q", namespace)
+	}
+
+	log.Infof("Gathered %d resources from %d clusters in %.3f seconds",
+		count, len(contexts), time.Since(start).Seconds())
 }
 
 func createLogger() *zap.SugaredLogger {
