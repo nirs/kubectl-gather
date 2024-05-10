@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	stdlog "log"
 	"os"
 	"path/filepath"
@@ -92,6 +93,10 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		contexts = append(contexts, config.CurrentContext)
 	}
 
+	if err := validateContexts(config, contexts); err != nil {
+		log.Fatalf("Invalid contexts: %s", err)
+	}
+
 	wg := sync.WaitGroup{}
 	errors := make(chan error, len(contexts))
 
@@ -155,6 +160,25 @@ func createLogger() *zap.SugaredLogger {
 	)
 
 	return zap.New(core).Named("gather").Sugar()
+}
+
+func validateContexts(config *api.Config, contexts []string) error {
+	for _, context := range contexts {
+		ctx, ok := config.Contexts[context]
+		if !ok {
+			return fmt.Errorf("context %q does not exist", context)
+		}
+
+		if _, ok := config.Clusters[ctx.Cluster]; !ok {
+			return fmt.Errorf("context %q does not have a cluster", context)
+		}
+
+		if _, ok := config.AuthInfos[ctx.Cluster]; !ok {
+			return fmt.Errorf("context %q does not have a auth info", context)
+		}
+	}
+
+	return nil
 }
 
 func defaultKubeconfig() string {
