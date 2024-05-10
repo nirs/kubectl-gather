@@ -87,7 +87,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	a.log.Debugf("Storing commands output in %s", commands)
 
-	rc := a.remoteCommand(tools, commands)
+	rc := NewRemoteCommand(tools, a.opts, a.log, commands)
 
 	// Running remote ceph commands in parallel is much faster.
 
@@ -100,12 +100,9 @@ func (a *RookAddon) gatherCommands(namespace string) {
 }
 
 func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
-	name := strings.Join(command, "-")
-	start := time.Now()
 	if err := rc.Gather(command...); err != nil {
-		a.log.Warnf("Error running %q: %s", name, err)
+		a.log.Warnf("Error running %q: %s", strings.Join(command, "-"), err)
 	}
-	a.log.Debugf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) logCollectorEnabled(cephcluster *unstructured.Unstructured) bool {
@@ -239,15 +236,4 @@ func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod
 	}
 
 	return &pods.Items[0], nil
-}
-
-func (a *RookAddon) remoteCommand(pod *corev1.Pod, dir string) *RemoteCommand {
-	return &RemoteCommand{
-		Kubeconfig: a.opts.Kubeconfig,
-		Context:    a.opts.Context,
-		Namespace:  pod.Namespace,
-		Pod:        pod.Name,
-		Container:  pod.Spec.Containers[0].Name,
-		Directory:  dir,
-	}
 }

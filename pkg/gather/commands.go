@@ -9,37 +9,45 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
+
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type RemoteCommand struct {
-	Kubeconfig string
-	Context    string
-	Namespace  string
-	Pod        string
-	Container  string
-	Directory  string
+	pod       *corev1.Pod
+	opts      *Options
+	log       *zap.SugaredLogger
+	directory string
 }
 
 var specialCharacters *regexp.Regexp
 
+func NewRemoteCommand(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger, directroy string) *RemoteCommand {
+	return &RemoteCommand{pod: pod, opts: opts, log: log, directory: directroy}
+}
+
 func (c *RemoteCommand) Gather(command ...string) error {
-	args := []string{"exec", c.Pod}
-	if c.Kubeconfig != "" {
-		args = append(args, "--kubeconfig="+c.Kubeconfig)
+	start := time.Now()
+
+	args := []string{
+		"exec",
+		c.pod.Name,
+		"--container=" + c.pod.Spec.Containers[0].Name,
+		"--namespace=" + c.pod.Namespace,
 	}
-	if c.Context != "" {
-		args = append(args, "--context="+c.Context)
+	if c.opts.Kubeconfig != "" {
+		args = append(args, "--kubeconfig="+c.opts.Kubeconfig)
 	}
-	if c.Namespace != "" {
-		args = append(args, "--namespace="+c.Namespace)
-	}
-	if c.Container != "" {
-		args = append(args, "--container="+c.Container)
+	if c.opts.Context != "" {
+		args = append(args, "--context="+c.opts.Context)
 	}
 	args = append(args, "--")
 	args = append(args, command...)
 
-	writer, err := os.Create(c.Filename(command...))
+	filename := c.Filename(command...)
+	writer, err := os.Create(filepath.Join(c.directory, filename))
 	if err != nil {
 		return err
 	}
@@ -48,13 +56,16 @@ func (c *RemoteCommand) Gather(command ...string) error {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Stdout = writer
 
-	return cmd.Run()
+	c.log.Debugf("Running command %s", cmd)
+	err = cmd.Run()
+	c.log.Debugf("Gathered %s in %.3f seconds", filename, time.Since(start).Seconds())
+
+	return err
 }
 
 func (c *RemoteCommand) Filename(command ...string) string {
 	name := strings.Join(command, " ")
-	name = specialCharacters.ReplaceAllString(name, "-")
-	return filepath.Join(c.Directory, name)
+	return specialCharacters.ReplaceAllString(name, "-")
 }
 
 func init() {
