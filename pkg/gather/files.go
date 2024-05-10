@@ -13,18 +13,20 @@ import (
 	"strings"
 
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type RemoteDirectory struct {
-	Kubeconfig string
-	Context    string
-	Namespace  string
-	Pod        string
-	Container  string
-	Log        *zap.SugaredLogger
+	pod  *corev1.Pod
+	opts *Options
+	log  *zap.SugaredLogger
 }
 
 var tarFileChangedError *regexp.Regexp
+
+func NewRemoteDirectory(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger) *RemoteDirectory {
+	return &RemoteDirectory{pod: pod, opts: opts, log: log}
+}
 
 func (d *RemoteDirectory) Gather(src string, dst string) error {
 	// We run remote tar and pipe the output to local tar:
@@ -44,13 +46,13 @@ func (d *RemoteDirectory) Gather(src string, dst string) error {
 	localTar.Stderr = &localError
 	localTar.Stdin = pipe
 
-	d.log("Starting remote tar: %s", remoteTar)
+	d.log.Debugf("Starting remote tar: %s", remoteTar)
 	err = remoteTar.Start()
 	if err != nil {
 		return err
 	}
 
-	d.log("Starting local tar: %s", localTar)
+	d.log.Debugf("Starting local tar: %s", localTar)
 	err = localTar.Start()
 	if err != nil {
 		remoteTar.Process.Kill()
@@ -90,16 +92,16 @@ func (d *RemoteDirectory) isFileChangedError(err error, stderr string) bool {
 func (d *RemoteDirectory) remoteTarCommand(src string) *exec.Cmd {
 	args := []string{
 		"exec",
-		d.Pod,
-		"--namespace=" + d.Namespace,
-		"--container=" + d.Container,
+		d.pod.Name,
+		"--namespace=" + d.pod.Namespace,
+		"--container=" + d.pod.Spec.Containers[0].Name,
 	}
 
-	if d.Kubeconfig != "" {
-		args = append(args, "--kubeconfig="+d.Kubeconfig)
+	if d.opts.Kubeconfig != "" {
+		args = append(args, "--kubeconfig="+d.opts.Kubeconfig)
 	}
-	if d.Context != "" {
-		args = append(args, "--context="+d.Context)
+	if d.opts.Context != "" {
+		args = append(args, "--context="+d.opts.Context)
 	}
 	args = append(args, "--", "tar", "cf", "-", src)
 
@@ -121,12 +123,6 @@ func (d *RemoteDirectory) pathComponents(s string) int {
 	sep := string(os.PathSeparator)
 	trimmed := strings.Trim(s, sep)
 	return strings.Count(trimmed, sep) + 1
-}
-
-func (d *RemoteDirectory) log(fmt string, args ...interface{}) {
-	if d.Log != nil {
-		d.Log.Debugf(fmt, args...)
-	}
 }
 
 func init() {

@@ -187,7 +187,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 		return
 	}
 
-	rd := a.remoteDirectory(agent.Pod)
+	rd := NewRemoteDirectory(agent.Pod, a.opts, a.log)
 	src := filepath.Join(dataDir, namespace, "log")
 
 	if err := rd.Gather(src, logs); err != nil {
@@ -249,16 +249,5 @@ func (a *RookAddon) remoteCommand(pod *corev1.Pod, dir string) *RemoteCommand {
 		Pod:        pod.Name,
 		Container:  pod.Spec.Containers[0].Name,
 		Directory:  dir,
-	}
-}
-
-func (a *RookAddon) remoteDirectory(pod *corev1.Pod) *RemoteDirectory {
-	return &RemoteDirectory{
-		Kubeconfig: a.opts.Kubeconfig,
-		Context:    a.opts.Context,
-		Namespace:  pod.Namespace,
-		Pod:        pod.Name,
-		Container:  pod.Spec.Containers[0].Name,
-		Log:        a.log,
 	}
 }
