@@ -45,9 +45,9 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 	}, nil
 }
 
-func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
+func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 	namespace := cephcluster.GetNamespace()
-	a.log.Debugf("Gathering data for cephcluster %s/%s", namespace, cephcluster.GetName())
+	a.log.Debugf("Inspecting cephcluster %s/%s", namespace, cephcluster.GetName())
 
 	a.q.Queue(func() error {
 		a.gatherCommands(namespace)

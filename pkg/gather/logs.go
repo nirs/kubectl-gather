@@ -64,7 +64,9 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 	}, nil
 }
 
-func (g *LogsAddon) Gather(pod *unstructured.Unstructured) error {
+func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
+	g.log.Debugf("Inspecting pod %s/%s", pod.GetNamespace(), pod.GetName())
+
 	containers, err := listContainers(pod)
 	if err != nil {
 		return fmt.Errorf("cannnot find containers in pod %s/%s: %s",

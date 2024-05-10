@@ -32,7 +32,8 @@ type Options struct {
 }
 
 type Addon interface {
-	Gather(*unstructured.Unstructured) error
+	// Inspect a resource and gather related data.
+	Inspect(*unstructured.Unstructured) error
 }
 
 type Gatherer struct {
@@ -229,9 +230,8 @@ func (g *Gatherer) gatherResources(r *resourceInfo) {
 		}
 
 		if addon != nil {
-			if err := addon.Gather(item); err != nil {
-				g.log.Warnf("Cannot gather additional data for %s/%s: %s",
-					r.Name(), item.GetName(), err)
+			if err := addon.Inspect(item); err != nil {
+				g.log.Warnf("Cannot inspect %s/%s: %s", r.Name(), item.GetName(), err)
 			}
 		}
 	}
