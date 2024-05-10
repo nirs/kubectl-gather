@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -125,6 +127,20 @@ func (g *Gatherer) Gather() error {
 }
 
 func (g *Gatherer) gatherAPIResources() error {
+	if g.opts.Namespace != "" {
+		found, err := g.validateNamespace()
+		if err != nil {
+			// We cannot gather anything.
+			return err
+		}
+
+		if !found {
+			// Nothing to gather - expected conditions when gathering namespace
+			// from multiple cluster when namespace exists only on some.
+			return nil
+		}
+	}
+
 	resources, err := g.listAPIResources()
 	if err != nil {
 		// We cannot gather anything.
@@ -174,6 +190,22 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	g.log.Debugf("Listed %d api resources in %.3f seconds", len(resources), time.Since(start).Seconds())
 
 	return resources, nil
+}
+
+// validateNamespace tells if specified namespace exists in cluster. It fails we
+// cannot get the namespace for other reason.
+func (g *Gatherer) validateNamespace() (bool, error) {
+	gvr := corev1.SchemeGroupVersion.WithResource("namespaces")
+	_, err := g.resourcesClient.Resource(gvr).
+		Get(context.TODO(), g.opts.Namespace, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return false, fmt.Errorf("cannot get namespace %q: %s", g.opts.Namespace, err)
+		}
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource) bool {
