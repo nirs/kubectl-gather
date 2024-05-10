@@ -137,6 +137,7 @@ func (g *Gatherer) gatherAPIResources() error {
 		if !found {
 			// Nothing to gather - expected conditions when gathering namespace
 			// from multiple cluster when namespace exists only on some.
+			g.log.Debugf("Namesapce %q not found", g.opts.Namespace)
 			return nil
 		}
 	}
