@@ -36,7 +36,7 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 	}
 
 	return &RookAddon{
-		name:   "rook-ceph",
+		name:   "rook",
 		out:    out,
 		opts:   opts,
 		q:      q,
