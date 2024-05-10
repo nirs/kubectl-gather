@@ -65,7 +65,7 @@ func NewAgentPod(name string, client *kubernetes.Clientset, log *zap.SugaredLogg
 }
 
 func (a *AgentPod) Create() error {
-	a.Log.Debugf("Starting agent pod %s/%s", a.Pod.Namespace, a.Pod.Name)
+	a.Log.Debugf("Starting agent pod %s", a)
 	pod, err := a.Client.CoreV1().Pods(a.Pod.Namespace).
 		Create(context.TODO(), a.Pod, metav1.CreateOptions{})
 	if err != nil {
@@ -99,25 +99,29 @@ func (a *AgentPod) WaitUntilRunning() error {
 			case corev1.PodRunning:
 				return nil
 			case corev1.PodFailed:
-				return fmt.Errorf("agent pod failed")
+				return fmt.Errorf("agent pod %s failed", a)
 			case corev1.PodSucceeded:
-				return fmt.Errorf("agent pod terminated")
+				return fmt.Errorf("agent pod %s terminated", a)
 			}
 		case watch.Error:
-			a.Log.Warnf("Watch error: %s", event)
+			a.Log.Warnf("Agent pod %s watch error: %s", a, event)
 		case watch.Deleted:
-			return fmt.Errorf("agent pod was deleted")
+			return fmt.Errorf("agent pod %s was deleted", a)
 		}
 	}
 
-	return fmt.Errorf("timeout waiting for agent pod running phase")
+	return fmt.Errorf("timeout waiting for agent pod %s running phase", a)
 }
 
 func (a *AgentPod) Delete() {
-	a.Log.Debugf("Deleting agent pod %s/%s", a.Pod.Namespace, a.Pod.Name)
+	a.Log.Debugf("Deleting agent pod %s", a)
 	err := a.Client.CoreV1().Pods(a.Pod.Namespace).
 		Delete(context.TODO(), a.Pod.Name, metav1.DeleteOptions{})
 	if err != nil {
-		a.Log.Warnf("Cannot delete agent pod %s/%s", a.Pod.Namespace, a.Pod.Name)
+		a.Log.Warnf("Cannot delete agent pod %s", a)
 	}
+}
+
+func (a AgentPod) String() string {
+	return a.Pod.Namespace + "/" + a.Pod.Name
 }
