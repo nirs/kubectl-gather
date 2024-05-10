@@ -41,7 +41,7 @@ func (c *RemoteCommand) Gather(command ...string) error {
 
 	writer, err := os.Create(c.Filename(command...))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	defer writer.Close()
