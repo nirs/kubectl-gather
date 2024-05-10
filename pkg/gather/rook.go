@@ -89,7 +89,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	rc := a.remoteCommand(tools, commands)
 
-	// Running remove ceph commands in parallel is much faster.
+	// Running remote ceph commands in parallel is much faster.
 
 	a.q.Queue(func() error {
 		a.gatherCommand(rc, "ceph", "osd", "blocklist", "ls")
