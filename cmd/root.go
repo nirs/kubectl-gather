@@ -173,7 +173,7 @@ func validateContexts(config *api.Config, contexts []string) error {
 			return fmt.Errorf("context %q does not have a cluster", context)
 		}
 
-		if _, ok := config.AuthInfos[ctx.Cluster]; !ok {
+		if _, ok := config.AuthInfos[ctx.AuthInfo]; !ok {
 			return fmt.Errorf("context %q does not have a auth info", context)
 		}
 	}
