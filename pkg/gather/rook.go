@@ -73,7 +73,7 @@ func (a *RookAddon) Gather(cephcluster *unstructured.Unstructured) error {
 func (a *RookAddon) gatherCommands(namespace string) {
 	tools, err := a.findPod(namespace, "app=rook-ceph-tools")
 	if err != nil {
-		a.log.Debugf("Cannot find rook-ceph-tools pod: %s", err)
+		a.log.Warnf("Cannot find rook-ceph-tools pod: %s", err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	commands, err := a.out.CreateAddonDir(a.name, "commands")
 	if err != nil {
-		a.log.Debugf("Cannot create %s commnads directory: %s", a.name, err)
+		a.log.Warnf("Cannot create %s commnads directory: %s", a.name, err)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {
 	name := strings.Join(command, "-")
 	start := time.Now()
 	if err := rc.Gather(command...); err != nil {
-		a.log.Debugf("Error running %q: %s", name, err)
+		a.log.Warnf("Error running %q: %s", name, err)
 	}
 	a.log.Debugf("Gathered %s in %.3f seconds", name, time.Since(start).Seconds())
 }
@@ -183,7 +183,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 
 	logs, err := a.out.CreateAddonDir(a.name, "logs", nodeName)
 	if err != nil {
-		a.log.Debugf("Cannot create logs directory: %s", err)
+		a.log.Warnf("Cannot create logs directory: %s", err)
 		return
 	}
 
