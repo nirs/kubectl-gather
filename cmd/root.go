@@ -72,12 +72,6 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	log := createLogger()
 	defer log.Sync()
 
-	if namespace != "" {
-		log.Infof("Gathering namespace %q", namespace)
-	} else {
-		log.Infof("Gathering all namespaces")
-	}
-
 	log.Infof("Using kubeconfig %q", kubeconfig)
 	config, err := loadConfig(kubeconfig)
 	if err != nil {
@@ -95,6 +89,12 @@ func gatherAll(cmd *cobra.Command, args []string) {
 
 	if err := validateContexts(config, contexts); err != nil {
 		log.Fatalf("Invalid contexts: %s", err)
+	}
+
+	if namespace != "" {
+		log.Infof("Gathering namespace %q", namespace)
+	} else {
+		log.Infof("Gathering all namespaces")
 	}
 
 	wg := sync.WaitGroup{}
