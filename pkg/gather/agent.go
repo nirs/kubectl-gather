@@ -91,6 +91,8 @@ func (a *AgentPod) WaitUntilRunning() error {
 		return err
 	}
 
+	defer watcher.Stop()
+
 	for event := range watcher.ResultChan() {
 		switch event.Type {
 		case watch.Modified:
