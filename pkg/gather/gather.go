@@ -254,7 +254,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo) {
 
 	list, err := g.listResources(r)
 	if err != nil {
-		g.log.Warnf("Cannot list %s: %s", r.Name(), err)
+		g.log.Warnf("Cannot list %q: %s", r.Name(), err)
 		return
 	}
 
@@ -267,17 +267,17 @@ func (g *Gatherer) gatherResources(r *resourceInfo) {
 
 		err := g.dumpResource(r, item)
 		if err != nil {
-			g.log.Warnf("Cannot dump %s/%s: %s", r.Name(), item.GetName(), err)
+			g.log.Warnf("Cannot dump \"%s/%s\": %s", r.Name(), item.GetName(), err)
 		}
 
 		if addon != nil {
 			if err := addon.Inspect(item); err != nil {
-				g.log.Warnf("Cannot inspect %s/%s: %s", r.Name(), item.GetName(), err)
+				g.log.Warnf("Cannot inspect \"%s/%s\": %s", r.Name(), item.GetName(), err)
 			}
 		}
 	}
 
-	g.log.Debugf("Gathered %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+	g.log.Debugf("Gathered %d %q in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 }
 
 func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredList, error) {
@@ -304,7 +304,7 @@ func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredLis
 		return nil, err
 	}
 
-	g.log.Debugf("Listed %d %s in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+	g.log.Debugf("Listed %d %q in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 
 	return list, nil
 }

@@ -47,7 +47,7 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 
 func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 	namespace := cephcluster.GetNamespace()
-	a.log.Debugf("Inspecting cephcluster %s/%s", namespace, cephcluster.GetName())
+	a.log.Debugf("Inspecting cephcluster \"%s/%s\"", namespace, cephcluster.GetName())
 
 	a.q.Queue(func() error {
 		a.gatherCommands(namespace)
@@ -73,11 +73,11 @@ func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 func (a *RookAddon) gatherCommands(namespace string) {
 	tools, err := a.findPod(namespace, "app=rook-ceph-tools")
 	if err != nil {
-		a.log.Warnf("Cannot find rook-ceph-tools pod: %s", err)
+		a.log.Warnf("Cannot find tools pod: %s", err)
 		return
 	}
 
-	a.log.Debugf("Using pod %s", tools.Name)
+	a.log.Debugf("Using pod %q", tools.Name)
 
 	commands, err := a.out.CreateAddonDir(a.name, "commands")
 	if err != nil {
@@ -85,7 +85,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 		return
 	}
 
-	a.log.Debugf("Storing commands output in %s", commands)
+	a.log.Debugf("Storing commands output in %q", commands)
 
 	rc := NewRemoteCommand(tools, a.opts, a.log, commands)
 
@@ -119,7 +119,7 @@ func (a *RookAddon) dataDirHostPath(cephcluster *unstructured.Unstructured) (str
 		return "", err
 	}
 	if !found {
-		return "", fmt.Errorf("cannot find .spc.dataDirHostPath")
+		return "", fmt.Errorf("cannot find .spec.dataDirHostPath")
 	}
 	return path, nil
 }
@@ -161,7 +161,7 @@ func (a *RookAddon) findNodesToGather(namespace string) ([]string, error) {
 }
 
 func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir string) {
-	a.log.Debugf("Gathering ceph logs from nodeName %s dataDir %s", nodeName, dataDir)
+	a.log.Debugf("Gathering ceph logs from node %q dataDir %q", nodeName, dataDir)
 	start := time.Now()
 
 	agent, err := a.createAgentPod(nodeName, dataDir)
@@ -172,11 +172,11 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 	defer agent.Delete()
 
 	if err := agent.WaitUntilRunning(); err != nil {
-		a.log.Warnf("Error waiting for agent pod: %s", err)
+		a.log.Warnf("Error waiting for agent pod: %s", agent, err)
 		return
 	}
 
-	a.log.Debugf("Agent pod running in %.3f seconds", time.Since(start).Seconds())
+	a.log.Debugf("Agent pod %q running in %.3f seconds", agent, time.Since(start).Seconds())
 
 	logs, err := a.out.CreateAddonDir(a.name, "logs", nodeName)
 	if err != nil {
@@ -188,10 +188,10 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 	src := filepath.Join(dataDir, namespace, "log")
 
 	if err := rd.Gather(src, logs); err != nil {
-		a.log.Warnf("Cannot copy %s from agent pod %s: %s", src, agent.Pod.Name, err)
+		a.log.Warnf("Cannot copy %q from agent pod %q: %s", src, agent.Pod.Name, err)
 	}
 
-	a.log.Debugf("Gathered node %s logs in %.3f seconds", nodeName, time.Since(start).Seconds())
+	a.log.Debugf("Gathered node %q logs in %.3f seconds", nodeName, time.Since(start).Seconds())
 }
 
 func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, error) {
@@ -231,7 +231,7 @@ func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod
 	}
 
 	if len(pods.Items) == 0 {
-		return nil, fmt.Errorf("no pod matches %s in namespace %s", labelSelector, namespace)
+		return nil, fmt.Errorf("no pod matches %q in namespace %q", labelSelector, namespace)
 	}
 
 	return &pods.Items[0], nil

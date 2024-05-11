@@ -65,11 +65,11 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 }
 
 func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
-	g.log.Debugf("Inspecting pod %s/%s", pod.GetNamespace(), pod.GetName())
+	g.log.Debugf("Inspecting pod \"%s/%s\"", pod.GetNamespace(), pod.GetName())
 
 	containers, err := listContainers(pod)
 	if err != nil {
-		return fmt.Errorf("cannnot find containers in pod %s/%s: %s",
+		return fmt.Errorf("cannnot find containers in pod \"%s/%s\": %s",
 			pod.GetNamespace(), pod.GetName(), err)
 	}
 
@@ -113,7 +113,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 		// PodInitializing" so there is no way to detect the actul problem.
 		// Since this is expected situation, and getting logs is best effort, we
 		// log this in debug level.
-		g.log.Debugf("Cannot get log for %s/%s: %+v", container, which, err)
+		g.log.Debugf("Cannot get log for \"%s/%s\": %+v", container, which, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 	dst, err := g.output.CreateContainerLog(
 		container.Namespace, container.Pod, container.Name, string(which))
 	if err != nil {
-		g.log.Warnf("Cannot create %s/%s.log: %s", container, which, err)
+		g.log.Warnf("Cannot create \"%s/%s.log\": %s", container, which, err)
 		return
 	}
 
@@ -130,12 +130,12 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 
 	n, err := io.Copy(dst, src)
 	if err != nil {
-		g.log.Warnf("Cannot copy %s/%s.log: %s", container, which, err)
+		g.log.Warnf("Cannot copy \"%s/%s.log\": %s", container, which, err)
 	}
 
 	elapsed := time.Since(start).Seconds()
 	rate := float64(n) / float64(1024*1024) / elapsed
-	g.log.Debugf("Gathered %s/%s.log in %.3f seconds (%.2f MiB/s)",
+	g.log.Debugf("Gathered \"%s/%s.log\" in %.3f seconds (%.2f MiB/s)",
 		container, which, elapsed, rate)
 }
 

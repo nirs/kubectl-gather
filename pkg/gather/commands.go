@@ -56,9 +56,9 @@ func (c *RemoteCommand) Gather(command ...string) error {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Stdout = writer
 
-	c.log.Debugf("Running command %s", cmd)
+	c.log.Debugf("Running command: %s", cmd)
 	err = cmd.Run()
-	c.log.Debugf("Gathered %s in %.3f seconds", filename, time.Since(start).Seconds())
+	c.log.Debugf("Gathered %q in %.3f seconds", filename, time.Since(start).Seconds())
 
 	return err
 }
