@@ -97,9 +97,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	}
 
 	if namespace != "" {
-		log.Infof("Gathering namespace %q", namespace)
+		log.Infof("Gathering from namespace %q", namespace)
 	} else {
-		log.Infof("Gathering all namespaces")
+		log.Infof("Gathering from all namespaces")
 	}
 
 	wg := sync.WaitGroup{}
