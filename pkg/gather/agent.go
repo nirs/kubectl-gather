@@ -6,6 +6,7 @@ package gather
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	toolswatch "k8s.io/client-go/tools/watch"
 )
 
 const (
@@ -77,17 +79,23 @@ func (a *AgentPod) Create() error {
 	return nil
 }
 
+type agentWatcher struct {
+	agent *AgentPod
+	ctx   context.Context
+}
+
+func (w *agentWatcher) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	w.agent.Log.Debugf("Watching agent pod %q", w.agent)
+	opts.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, w.agent.Pod.Name).String()
+	return w.agent.Client.CoreV1().Pods(w.agent.Pod.Namespace).Watch(w.ctx, opts)
+}
+
 func (a *AgentPod) WaitUntilRunning() error {
-	// TODO: use tools/watch for handling watch errors?
+	ctx, cancel := context.WithTimeout(context.Background(), agentPodTimeoutSeconds*time.Second)
+	defer cancel()
 
-	timeout := int64(agentPodTimeoutSeconds)
-	selector := fields.OneTermEqualSelector(metav1.ObjectNameField, a.Pod.Name).String()
-
-	watcher, err := a.Client.CoreV1().Pods(a.Pod.Namespace).
-		Watch(context.TODO(), metav1.ListOptions{
-			TimeoutSeconds: &timeout,
-			FieldSelector:  selector,
-		})
+	w := agentWatcher{agent: a, ctx: ctx}
+	watcher, err := toolswatch.NewRetryWatcher(a.Pod.ResourceVersion, &w)
 	if err != nil {
 		return err
 	}
