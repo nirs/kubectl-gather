@@ -214,7 +214,6 @@ func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, 
 	}
 
 	if err := agent.Create(); err != nil {
-		a.log.Warnf("Cannot create agent pod: %s", err)
 		return nil, err
 	}
 
