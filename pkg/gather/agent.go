@@ -95,7 +95,7 @@ func (a *AgentPod) WaitUntilRunning() error {
 
 	for event := range watcher.ResultChan() {
 		switch event.Type {
-		case watch.Modified:
+		case watch.Modified, watch.Added:
 			obj := event.Object.(*corev1.Pod)
 			switch obj.Status.Phase {
 			case corev1.PodRunning:
