@@ -9,6 +9,7 @@ import (
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -106,7 +107,8 @@ func (a *AgentPod) WaitUntilRunning() error {
 				return fmt.Errorf("agent pod %q terminated", a)
 			}
 		case watch.Error:
-			a.Log.Warnf("Agent pod %q watch error: %s", a, event)
+			err := apierrors.FromObject(event.Object)
+			return fmt.Errorf("agent pod %q watch error: %s", a, err)
 		case watch.Deleted:
 			return fmt.Errorf("agent pod %q was deleted", a)
 		}
