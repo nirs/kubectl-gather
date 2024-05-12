@@ -154,15 +154,11 @@ func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 	for _, c := range statuses {
 		status, ok := c.(map[string]interface{})
 		if !ok {
-			return nil, nil
+			continue
 		}
 
 		name, found, err := unstructured.NestedString(status, "name")
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
+		if err != nil || !found {
 			continue
 		}
 
