@@ -140,38 +140,42 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 }
 
 func (g *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
-	statuses, found, err := unstructured.NestedSlice(pod.Object, "status", "containerStatuses")
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, nil
-	}
-
 	var result []*containerInfo
 
-	for _, c := range statuses {
-		status, ok := c.(map[string]interface{})
-		if !ok {
-			g.log.Warnf("Invalid container status for pod \"%s/%s\": %s",
-				pod.GetNamespace(), pod.GetName(), status)
+	for _, key := range []string{"containerStatuses", "initContainerStatuses"} {
+		statuses, found, err := unstructured.NestedSlice(pod.Object, "status", key)
+		if err != nil {
+			g.log.Warnf("Cannot get %q for pod \"%s/%s\": %s",
+				key, pod.GetNamespace(), pod.GetName(), err)
 			continue
 		}
 
-		name, found, err := unstructured.NestedString(status, "name")
-		if err != nil || !found {
-			g.log.Warnf("No container status name for pod \"%s/%s\": %s",
-				pod.GetNamespace(), pod.GetName(), status)
+		if !found {
 			continue
 		}
 
-		result = append(result, &containerInfo{
-			Namespace:      pod.GetNamespace(),
-			Pod:            pod.GetName(),
-			Name:           name,
-			HasPreviousLog: containerHasPreviousLog(status),
-		})
+		for _, c := range statuses {
+			status, ok := c.(map[string]interface{})
+			if !ok {
+				g.log.Warnf("Invalid container status for pod \"%s/%s\": %s",
+					pod.GetNamespace(), pod.GetName(), status)
+				continue
+			}
+
+			name, found, err := unstructured.NestedString(status, "name")
+			if err != nil || !found {
+				g.log.Warnf("No container status name for pod \"%s/%s\": %s",
+					pod.GetNamespace(), pod.GetName(), status)
+				continue
+			}
+
+			result = append(result, &containerInfo{
+				Namespace:      pod.GetNamespace(),
+				Pod:            pod.GetName(),
+				Name:           name,
+				HasPreviousLog: containerHasPreviousLog(status),
+			})
+		}
 	}
 
 	return result, nil
