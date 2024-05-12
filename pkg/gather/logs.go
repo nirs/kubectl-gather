@@ -67,7 +67,7 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 	g.log.Debugf("Inspecting pod \"%s/%s\"", pod.GetNamespace(), pod.GetName())
 
-	containers, err := listContainers(pod)
+	containers, err := g.listContainers(pod)
 	if err != nil {
 		return fmt.Errorf("cannnot find containers in pod \"%s/%s\": %s",
 			pod.GetNamespace(), pod.GetName(), err)
@@ -139,7 +139,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 		container, which, elapsed, rate)
 }
 
-func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
+func (g *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 	statuses, found, err := unstructured.NestedSlice(pod.Object, "status", "containerStatuses")
 	if err != nil {
 		return nil, err
@@ -154,11 +154,15 @@ func listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 	for _, c := range statuses {
 		status, ok := c.(map[string]interface{})
 		if !ok {
+			g.log.Warnf("Invalid container status for pod \"%s/%s\": %s",
+				pod.GetNamespace(), pod.GetName(), status)
 			continue
 		}
 
 		name, found, err := unstructured.NestedString(status, "name")
 		if err != nil || !found {
+			g.log.Warnf("No container status name for pod \"%s/%s\": %s",
+				pod.GetNamespace(), pod.GetName(), status)
 			continue
 		}
 
