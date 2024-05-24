@@ -223,9 +223,12 @@ func (g *Gatherer) validateNamespaces() (bool, error) {
 			if !errors.IsNotFound(err) {
 				return false, fmt.Errorf("cannot get namespace %q: %s", namespace, err)
 			}
+
 			// Expected condition when gathering multiple clusters.
 			g.log.Debugf("Namespace %q not found", namespace)
+			continue
 		}
+
 		found += 1
 	}
 
