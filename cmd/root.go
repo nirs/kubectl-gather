@@ -55,8 +55,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&directory, "directory", "d", defaultGatherDirectory(),
-		"directory for storing gathered data")
+	rootCmd.Flags().StringVarP(&directory, "directory", "d", "",
+		"directory for storing gathered data (default \"gather.{timestamp}\")")
 	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
 		"the kubeconfig file to use")
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
@@ -74,6 +74,11 @@ type result struct {
 
 func gatherAll(cmd *cobra.Command, args []string) {
 	start := time.Now()
+
+	if directory == "" {
+		directory = defaultGatherDirectory()
+	}
+
 	log := createLogger()
 	defer log.Sync()
 
@@ -100,6 +105,10 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Infof("Gathering from namespace %q", namespace)
 	} else {
 		log.Infof("Gathering from all namespaces")
+	}
+
+	if !cmd.Flags().Changed("directory") {
+		log.Infof("Storing data in %q", directory)
 	}
 
 	wg := sync.WaitGroup{}
@@ -219,5 +228,5 @@ func loadConfig(kubeconfig string) (*api.Config, error) {
 }
 
 func defaultGatherDirectory() string {
-	return time.Now().Format("gather-20060102150405")
+	return time.Now().Format("gather.20060102150405")
 }
