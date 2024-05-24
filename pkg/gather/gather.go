@@ -56,12 +56,14 @@ type resourceInfo struct {
 }
 
 // Name returns the full name of the reosurce, used as the directory name in the
-// gather directory.
+// gather directory. Resources with an empty group are gathered in the cluster
+// or namespace direcotry. Reosurces with non-empty group are gathered in a
+// group directory.
 func (r *resourceInfo) Name() string {
 	if r.GroupVersion.Group == "" {
 		return r.APIResource.Name
 	}
-	return r.APIResource.Name + "." + r.GroupVersion.Group
+	return r.GroupVersion.Group + "/" + r.APIResource.Name
 }
 
 func New(config *api.Config, directory string, opts Options) (*Gatherer, error) {
