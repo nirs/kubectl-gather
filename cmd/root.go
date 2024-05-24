@@ -22,7 +22,7 @@ import (
 var directory string
 var kubeconfig string
 var contexts []string
-var namespace string
+var namespaces []string
 var verbose bool
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
@@ -33,9 +33,9 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   # it in "gather/", using default kubeconfig (~/.kube/config).
   kubectl gather --directory gather --contexts dr1,dr2,hub
 
-  # Gather data from namespace "my-ns" in cluster "dr1" and store it in
-  # gather-my-ns/, using default kubeconfig (~/.kube/config).
-  kubectl gather --directory gather-my-ns --contexts dr1 --namespace my-ns`
+  # Gather data from namespaces "my-ns" and "other-ns" in cluster "dr1" and
+  # store it in gather/, using default kubeconfig (~/.kube/config).
+  kubectl gather --directory gather --contexts dr1 --namespaces my-ns,other-ns`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
@@ -61,8 +61,8 @@ func init() {
 		"the kubeconfig file to use")
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
 		"comma separated list of contexts to gather data from")
-	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "",
-		"namespace to gather data from")
+	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,
+		"comma separated list of namespaces to gather data from")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 }
@@ -101,8 +101,8 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Fatalf("Invalid contexts: %s", err)
 	}
 
-	if namespace != "" {
-		log.Infof("Gathering from namespace %q", namespace)
+	if len(namespaces) != 0 {
+		log.Infof("Gathering from namespaces %v", namespaces)
 	} else {
 		log.Infof("Gathering from all namespaces")
 	}
@@ -119,7 +119,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		options := gather.Options{
 			Kubeconfig: kubeconfig,
 			Context:    context,
-			Namespace:  namespace,
+			Namespaces: namespaces,
 			Log:        log.Named(context),
 		}
 		wg.Add(1)
@@ -156,9 +156,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		count += r.Count
 	}
 
-	if namespace != "" && count == 0 {
+	if len(namespaces) != 0 && count == 0 {
 		// Likely a user error like a wrong namespace.
-		log.Warnf("No resource gathered from namespace %q", namespace)
+		log.Warnf("No resource gathered from namespaces %v", namespaces)
 	}
 
 	log.Infof("Gathered %d resources from %d clusters in %.3f seconds",

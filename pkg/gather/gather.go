@@ -30,7 +30,7 @@ import (
 type Options struct {
 	Kubeconfig string
 	Context    string
-	Namespace  string
+	Namespaces []string
 	Log        *zap.SugaredLogger
 }
 
@@ -133,8 +133,8 @@ func (g *Gatherer) Count() int32 {
 }
 
 func (g *Gatherer) gatherAPIResources() error {
-	if g.opts.Namespace != "" {
-		found, err := g.validateNamespace()
+	if len(g.opts.Namespaces) != 0 {
+		found, err := g.validateNamespaces()
 		if err != nil {
 			// We cannot gather anything.
 			return err
@@ -143,7 +143,6 @@ func (g *Gatherer) gatherAPIResources() error {
 		if !found {
 			// Nothing to gather - expected conditions when gathering namespace
 			// from multiple cluster when namespace exists only on some.
-			g.log.Debugf("Namesapce %q not found", g.opts.Namespace)
 			return nil
 		}
 	}
@@ -154,12 +153,22 @@ func (g *Gatherer) gatherAPIResources() error {
 		return fmt.Errorf("cannot list api resources: %s", err)
 	}
 
+	var namespaces []string
+	if len(g.opts.Namespaces) == 0 {
+		namespaces = []string{metav1.NamespaceAll}
+	} else {
+		namespaces = g.opts.Namespaces
+	}
+
 	for i := range resources {
 		r := &resources[i]
-		g.wq.Queue(func() error {
-			g.gatherResources(r)
-			return nil
-		})
+		for j := range namespaces {
+			namespace := namespaces[j]
+			g.wq.Queue(func() error {
+				g.gatherResources(r, namespace)
+				return nil
+			})
+		}
 	}
 
 	return nil
@@ -199,20 +208,27 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	return resources, nil
 }
 
-// validateNamespace tells if specified namespace exists in cluster. It fails we
-// cannot get the namespace for other reason.
-func (g *Gatherer) validateNamespace() (bool, error) {
+// validateNamespaces tells if at least one namespaces exists in cluster. It fails we
+// cannot get one of the namespaces for other reason.
+func (g *Gatherer) validateNamespaces() (bool, error) {
 	gvr := corev1.SchemeGroupVersion.WithResource("namespaces")
-	_, err := g.resourcesClient.Resource(gvr).
-		Get(context.TODO(), g.opts.Namespace, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return false, fmt.Errorf("cannot get namespace %q: %s", g.opts.Namespace, err)
+	found := 0
+
+	for _, namespace := range g.opts.Namespaces {
+		_, err := g.resourcesClient.Resource(gvr).
+			Get(context.TODO(), namespace, metav1.GetOptions{})
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return false, fmt.Errorf("cannot get namespace %q: %s", namespace, err)
+			}
+			// Expected condition when gathering multiple clusters.
+			g.log.Debugf("Namespace %q not found", namespace)
 		}
-		return false, nil
+		found += 1
 	}
 
-	return true, nil
+	// If we found some of the namespaces we have some work to do.
+	return found > 0, nil
 }
 
 func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource) bool {
@@ -221,7 +237,7 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 		return false
 	}
 
-	if g.opts.Namespace != "" {
+	if len(g.opts.Namespaces) != 0 {
 		// If we gather specific namespace, we must use only namespaced resources.
 		if !res.Namespaced {
 			return false
@@ -249,10 +265,10 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 	return true
 }
 
-func (g *Gatherer) gatherResources(r *resourceInfo) {
+func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 	start := time.Now()
 
-	list, err := g.listResources(r)
+	list, err := g.listResources(r, namespace)
 	if err != nil {
 		g.log.Warnf("Cannot list %q: %s", r.Name(), err)
 		return
@@ -280,7 +296,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo) {
 	g.log.Debugf("Gathered %d %q in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
 }
 
-func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredList, error) {
+func (g *Gatherer) listResources(r *resourceInfo, namespace string) (*unstructured.UnstructuredList, error) {
 	start := time.Now()
 
 	var gvr = schema.GroupVersionResource{
@@ -295,7 +311,7 @@ func (g *Gatherer) listResources(r *resourceInfo) (*unstructured.UnstructuredLis
 	var err error
 
 	if r.APIResource.Namespaced {
-		list, err = g.resourcesClient.Resource(gvr).Namespace(g.opts.Namespace).List(ctx, opts)
+		list, err = g.resourcesClient.Resource(gvr).Namespace(namespace).List(ctx, opts)
 	} else {
 		list, err = g.resourcesClient.Resource(gvr).List(ctx, opts)
 	}
