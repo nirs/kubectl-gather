@@ -214,7 +214,7 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 // cannot get one of the namespaces for other reason.
 func (g *Gatherer) validateNamespaces() (bool, error) {
 	gvr := corev1.SchemeGroupVersion.WithResource("namespaces")
-	found := 0
+	var found []string
 
 	for _, namespace := range g.opts.Namespaces {
 		_, err := g.resourcesClient.Resource(gvr).
@@ -225,15 +225,18 @@ func (g *Gatherer) validateNamespaces() (bool, error) {
 			}
 
 			// Expected condition when gathering multiple clusters.
-			g.log.Debugf("Namespace %q not found", namespace)
+			g.log.Debugf("Skipping missing namespace %q", namespace)
 			continue
 		}
 
-		found += 1
+		found = append(found, namespace)
 	}
 
+	g.log.Debugf("Using namespaces %v", found)
+	g.opts.Namespaces = found
+
 	// If we found some of the namespaces we have some work to do.
-	return found > 0, nil
+	return len(found) > 0, nil
 }
 
 func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource) bool {
