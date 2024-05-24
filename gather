@@ -1,0 +1,11 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: The kubectl-gather authors
+# SPDX-License-Identifier: Apache-2.0
+# oc adm must-gather adapter for running kubectl-gather.
+
+base="/must-gather"
+
+mkdir -p "$base"
+printf "gather\n0.1.0\n" > "$base/version"
+
+/usr/bin/kubectl-gather --directory "$base" "$@"
