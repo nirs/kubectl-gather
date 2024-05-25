@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -90,7 +89,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		return nil, err
 	}
 
-	output := OutputDirectory{base: filepath.Join(directory, opts.Context)}
+	output := OutputDirectory{base: directory}
 
 	// TODO: make configurable
 	wq := NewWorkQueue(6, 500)

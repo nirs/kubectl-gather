@@ -116,6 +116,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 
 	for _, context := range contexts {
 		log.Infof("Gathering cluster %q", context)
+
+		directory := filepath.Join(directory, context)
+
 		options := gather.Options{
 			Kubeconfig: kubeconfig,
 			Context:    context,
