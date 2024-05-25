@@ -122,11 +122,20 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			Namespaces: namespaces,
 			Log:        log.Named(context),
 		}
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			g, err := gather.New(config, directory, options)
+
+			restConfig, err := clientcmd.NewNonInteractiveClientConfig(
+				*config, options.Context, nil, nil).ClientConfig()
+			if err != nil {
+				results <- result{Err: err}
+				return
+			}
+
+			g, err := gather.New(restConfig, directory, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
