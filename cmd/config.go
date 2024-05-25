@@ -18,6 +18,20 @@ type clusterConfig struct {
 }
 
 func loadClusterConfigs(contexts []string, kubeconfig string) ([]*clusterConfig, error) {
+	if len(contexts) == 0 {
+		restConfig, err := rest.InClusterConfig()
+		if err != rest.ErrNotInCluster {
+			if err != nil {
+				return nil, err
+			}
+
+			log.Infof("Using in cluster config")
+			return []*clusterConfig{{Config: restConfig}}, nil
+		}
+
+		log.Debugf("Not running in cluster")
+	}
+
 	log.Infof("Using kubeconfig %q", kubeconfig)
 	config, err := loadKubeconfig(kubeconfig)
 	if err != nil {
