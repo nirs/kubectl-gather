@@ -113,7 +113,8 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	results := make(chan result, len(contexts))
 
 	for _, context := range contexts {
-		log.Infof("Gathering cluster %q", context)
+		log.Infof("Gathering from cluster %q", context)
+		start := time.Now()
 
 		directory := filepath.Join(directory, context)
 
@@ -127,7 +128,6 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			start := time.Now()
 
 			restConfig, err := clientConfig(config, options.Context)
 			if err != nil {
@@ -147,8 +147,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 				return
 			}
 
+			elapsed := time.Since(start).Seconds()
 			log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
-				g.Count(), options.Context, time.Since(start).Seconds())
+				g.Count(), options.Context, elapsed)
 
 		}()
 	}
