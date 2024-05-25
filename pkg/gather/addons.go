@@ -22,7 +22,7 @@ func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory
 
 	registry := map[string]Addon{
 		"pods":                      logsAddon,
-		"cephclusters.ceph.rook.io": rookAddon,
+		"ceph.rook.io/cephclusters": rookAddon,
 	}
 
 	return registry, nil
