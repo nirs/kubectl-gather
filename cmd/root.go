@@ -21,6 +21,7 @@ var kubeconfig string
 var contexts []string
 var namespaces []string
 var verbose bool
+var log *zap.SugaredLogger
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
   # store it in gather-{timestamp}.
@@ -76,7 +77,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		directory = defaultGatherDirectory()
 	}
 
-	log := createLogger()
+	log = createLogger()
 	defer log.Sync()
 
 	log.Infof("Using kubeconfig %q", kubeconfig)
