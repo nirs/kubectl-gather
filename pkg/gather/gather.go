@@ -67,10 +67,6 @@ func (r *resourceInfo) Name() string {
 }
 
 func New(config *api.Config, directory string, opts Options) (*Gatherer, error) {
-	if opts.Context == "" {
-		opts.Context = config.CurrentContext
-	}
-
 	restConfig, err := clientcmd.NewNonInteractiveClientConfig(*config, opts.Context, nil, nil).ClientConfig()
 	if err != nil {
 		return nil, err
