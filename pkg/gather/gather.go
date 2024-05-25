@@ -23,8 +23,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 type Options struct {
@@ -66,33 +64,28 @@ func (r *resourceInfo) Name() string {
 	return r.GroupVersion.Group + "/" + r.APIResource.Name
 }
 
-func New(config *api.Config, directory string, opts Options) (*Gatherer, error) {
-	restConfig, err := clientcmd.NewNonInteractiveClientConfig(*config, opts.Context, nil, nil).ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func New(config *rest.Config, directory string, opts Options) (*Gatherer, error) {
 	// We want list all api resources (~80) quickly, gather logs from all pods,
 	// and run various commands on the nodes. This change makes gathering 60
 	// times faster than the defaults. (9.6 seconds -> 0.15 seconds).
-	restConfig.QPS = 50
-	restConfig.Burst = 100
+	config.QPS = 50
+	config.Burst = 100
 
 	// Disable the useless deprecated warnings.
 	// TODO: Make this configurable to allow arnings during development.
-	restConfig.WarningHandler = rest.NoWarnings{}
+	config.WarningHandler = rest.NoWarnings{}
 
-	httpClient, err := rest.HTTPClientFor(restConfig)
+	httpClient, err := rest.HTTPClientFor(config)
 	if err != nil {
 		return nil, err
 	}
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(restConfig, httpClient)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
 	}
 
-	resourcesClient, err := dynamic.NewForConfigAndClient(restConfig, httpClient)
+	resourcesClient, err := dynamic.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +95,7 @@ func New(config *api.Config, directory string, opts Options) (*Gatherer, error) 
 	// TODO: make configurable
 	wq := NewWorkQueue(6, 500)
 
-	addons, err := createAddons(restConfig, httpClient, &output, &opts, wq)
+	addons, err := createAddons(config, httpClient, &output, &opts, wq)
 	if err != nil {
 		return nil, err
 	}
