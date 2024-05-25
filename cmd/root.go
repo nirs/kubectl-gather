@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"fmt"
 	stdlog "log"
 	"os"
 	"path/filepath"
@@ -15,8 +14,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 var directory string
@@ -131,8 +128,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			defer wg.Done()
 			start := time.Now()
 
-			restConfig, err := clientcmd.NewNonInteractiveClientConfig(
-				*config, options.Context, nil, nil).ClientConfig()
+			restConfig, err := clientConfig(config, options.Context)
 			if err != nil {
 				results <- result{Err: err}
 				return
@@ -202,41 +198,6 @@ func createLogger() *zap.SugaredLogger {
 	)
 
 	return zap.New(core).Named("gather").Sugar()
-}
-
-func validateContexts(config *api.Config, contexts []string) error {
-	for _, context := range contexts {
-		ctx, ok := config.Contexts[context]
-		if !ok {
-			return fmt.Errorf("context %q does not exist", context)
-		}
-
-		if _, ok := config.Clusters[ctx.Cluster]; !ok {
-			return fmt.Errorf("context %q does not have a cluster", context)
-		}
-
-		if _, ok := config.AuthInfos[ctx.AuthInfo]; !ok {
-			return fmt.Errorf("context %q does not have a auth info", context)
-		}
-	}
-
-	return nil
-}
-
-func defaultKubeconfig() string {
-	env := os.Getenv("KUBECONFIG")
-	if env != "" {
-		return env
-	}
-	return clientcmd.RecommendedHomeFile
-}
-
-func loadConfig(kubeconfig string) (*api.Config, error) {
-	config, err := clientcmd.LoadFromFile(kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func defaultGatherDirectory() string {
