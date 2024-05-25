@@ -80,23 +80,9 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	log = createLogger(directory, verbose)
 	defer log.Sync()
 
-	log.Infof("Using kubeconfig %q", kubeconfig)
-	config, err := loadConfig(kubeconfig)
+	clusters, err := loadClusterConfigs(contexts, kubeconfig)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if len(contexts) == 0 {
-		if config.CurrentContext == "" {
-			log.Fatal("No context specified and current context not set")
-		}
-
-		log.Infof("Using current context %q", config.CurrentContext)
-		contexts = append(contexts, config.CurrentContext)
-	}
-
-	if err := validateContexts(config, contexts); err != nil {
-		log.Fatalf("Invalid contexts: %s", err)
 	}
 
 	if len(namespaces) != 0 {
@@ -110,32 +96,28 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	}
 
 	wg := sync.WaitGroup{}
-	results := make(chan result, len(contexts))
+	results := make(chan result, len(clusters))
 
-	for _, context := range contexts {
-		log.Infof("Gathering from cluster %q", context)
+	for i := range clusters {
+		cluster := clusters[i]
+
+		log.Infof("Gathering from cluster %q", cluster.Context)
 		start := time.Now()
 
-		directory := filepath.Join(directory, context)
+		directory := filepath.Join(directory, cluster.Context)
 
 		options := gather.Options{
 			Kubeconfig: kubeconfig,
-			Context:    context,
+			Context:    cluster.Context,
 			Namespaces: namespaces,
-			Log:        log.Named(context),
+			Log:        log.Named(cluster.Context),
 		}
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
-			restConfig, err := clientConfig(config, options.Context)
-			if err != nil {
-				results <- result{Err: err}
-				return
-			}
-
-			g, err := gather.New(restConfig, directory, options)
+			g, err := gather.New(cluster.Config, directory, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
@@ -149,8 +131,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 
 			elapsed := time.Since(start).Seconds()
 			log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
-				g.Count(), options.Context, elapsed)
-
+				g.Count(), cluster.Context, elapsed)
 		}()
 	}
 
@@ -172,7 +153,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	}
 
 	log.Infof("Gathered %d resources from %d clusters in %.3f seconds",
-		count, len(contexts), time.Since(start).Seconds())
+		count, len(clusters), time.Since(start).Seconds())
 }
 
 func createLogger(directory string, verbose bool) *zap.SugaredLogger {

@@ -12,11 +12,43 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-func clientConfig(config *api.Config, context string) (*rest.Config, error) {
-	return clientcmd.NewNonInteractiveClientConfig(*config, context, nil, nil).ClientConfig()
+type clusterConfig struct {
+	Config  *rest.Config
+	Context string
 }
 
-func loadConfig(kubeconfig string) (*api.Config, error) {
+func loadClusterConfigs(contexts []string, kubeconfig string) ([]*clusterConfig, error) {
+	log.Infof("Using kubeconfig %q", kubeconfig)
+	config, err := loadKubeconfig(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(contexts) == 0 {
+		if config.CurrentContext == "" {
+			return nil, fmt.Errorf("no context specified and current context not set")
+		}
+
+		log.Infof("Using current context %q", config.CurrentContext)
+		contexts = []string{config.CurrentContext}
+	}
+
+	var configs []*clusterConfig
+
+	for _, context := range contexts {
+		restConfig, err := clientcmd.NewNonInteractiveClientConfig(
+			*config, context, nil, nil).ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		configs = append(configs, &clusterConfig{Config: restConfig, Context: context})
+	}
+
+	return configs, nil
+}
+
+func loadKubeconfig(kubeconfig string) (*api.Config, error) {
 	config, err := clientcmd.LoadFromFile(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -30,23 +62,4 @@ func defaultKubeconfig() string {
 		return env
 	}
 	return clientcmd.RecommendedHomeFile
-}
-
-func validateContexts(config *api.Config, contexts []string) error {
-	for _, context := range contexts {
-		ctx, ok := config.Contexts[context]
-		if !ok {
-			return fmt.Errorf("context %q does not exist", context)
-		}
-
-		if _, ok := config.Clusters[ctx.Cluster]; !ok {
-			return fmt.Errorf("context %q does not have a cluster", context)
-		}
-
-		if _, ok := config.AuthInfos[ctx.AuthInfo]; !ok {
-			return fmt.Errorf("context %q does not have a auth info", context)
-		}
-	}
-
-	return nil
 }
