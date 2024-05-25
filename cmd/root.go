@@ -101,7 +101,11 @@ func gatherAll(cmd *cobra.Command, args []string) {
 	for i := range clusters {
 		cluster := clusters[i]
 
-		log.Infof("Gathering from cluster %q", cluster.Context)
+		if cluster.Context != "" {
+			log.Infof("Gathering from cluster %q", cluster.Context)
+		} else {
+			log.Info("Gathering on cluster")
+		}
 		start := time.Now()
 
 		directory := filepath.Join(directory, cluster.Context)
@@ -130,8 +134,13 @@ func gatherAll(cmd *cobra.Command, args []string) {
 			}
 
 			elapsed := time.Since(start).Seconds()
-			log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
-				g.Count(), cluster.Context, elapsed)
+			if cluster.Context != "" {
+				log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
+					g.Count(), cluster.Context, elapsed)
+			} else {
+				log.Infof("Gathered %d resources on cluster in %.3f seconds",
+					g.Count(), elapsed)
+			}
 		}()
 	}
 
