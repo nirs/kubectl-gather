@@ -55,8 +55,13 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "",
 		"directory for storing gathered data (default \"gather.{timestamp}\")")
-	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig(),
+
+	// Don't set default kubeconfig, so kubeconfig is empty unless the user
+	// specified the option. This is required to allow running remote commands
+	// using in-cluster config.
+	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "",
 		"the kubeconfig file to use")
+
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
 		"comma separated list of contexts to gather data from")
 	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,

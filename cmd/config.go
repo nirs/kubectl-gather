@@ -32,7 +32,6 @@ func loadClusterConfigs(contexts []string, kubeconfig string) ([]*clusterConfig,
 		log.Debugf("Not running in cluster")
 	}
 
-	log.Infof("Using kubeconfig %q", kubeconfig)
 	config, err := loadKubeconfig(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -63,6 +62,10 @@ func loadClusterConfigs(contexts []string, kubeconfig string) ([]*clusterConfig,
 }
 
 func loadKubeconfig(kubeconfig string) (*api.Config, error) {
+	if kubeconfig == "" {
+		kubeconfig = defaultKubeconfig()
+	}
+	log.Infof("Using kubeconfig %q", kubeconfig)
 	config, err := clientcmd.LoadFromFile(kubeconfig)
 	if err != nil {
 		return nil, err
