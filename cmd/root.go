@@ -77,7 +77,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		directory = defaultGatherDirectory()
 	}
 
-	log = createLogger()
+	log = createLogger(directory, verbose)
 	defer log.Sync()
 
 	log.Infof("Using kubeconfig %q", kubeconfig)
@@ -174,7 +174,7 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		count, len(contexts), time.Since(start).Seconds())
 }
 
-func createLogger() *zap.SugaredLogger {
+func createLogger(directory string, verbose bool) *zap.SugaredLogger {
 	if err := os.MkdirAll(directory, 0750); err != nil {
 		stdlog.Fatalf("Cannot create directory: %s", err)
 	}
