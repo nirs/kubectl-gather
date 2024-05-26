@@ -7,10 +7,8 @@ import (
 	stdlog "log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
-	"github.com/nirs/kubectl-gather/pkg/gather"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -20,6 +18,7 @@ var directory string
 var kubeconfig string
 var contexts []string
 var namespaces []string
+var remote bool
 var verbose bool
 var log *zap.SugaredLogger
 
@@ -30,6 +29,10 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
   # it in "gather/", using default kubeconfig (~/.kube/config).
   kubectl gather --directory gather --contexts dr1,dr2,hub
+
+  # Gather data on the remote clusters "dr1", "dr2" and "hub" and download
+  # gathered data to "gather/". Requires the "oc" command.
+  kubectl gather --directory gather --contexts dr1,dr2,hub --remote
 
   # Gather data from namespaces "my-ns" and "other-ns" in cluster "dr1" and
   # store it in gather/, using default kubeconfig (~/.kube/config).
@@ -42,7 +45,7 @@ var rootCmd = &cobra.Command{
 	Annotations: map[string]string{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
 	},
-	Run: gatherAll,
+	Run: runGather,
 }
 
 func Execute() {
@@ -66,18 +69,13 @@ func init() {
 		"comma separated list of contexts to gather data from")
 	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,
 		"comma separated list of namespaces to gather data from")
+	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
+		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 }
 
-type result struct {
-	Count int32
-	Err   error
-}
-
-func gatherAll(cmd *cobra.Command, args []string) {
-	start := time.Now()
-
+func runGather(cmd *cobra.Command, args []string) {
 	if directory == "" {
 		directory = defaultGatherDirectory()
 	}
@@ -100,74 +98,11 @@ func gatherAll(cmd *cobra.Command, args []string) {
 		log.Infof("Storing data in %q", directory)
 	}
 
-	wg := sync.WaitGroup{}
-	results := make(chan result, len(clusters))
-
-	for i := range clusters {
-		cluster := clusters[i]
-
-		if cluster.Context != "" {
-			log.Infof("Gathering from cluster %q", cluster.Context)
-		} else {
-			log.Info("Gathering on cluster")
-		}
-		start := time.Now()
-
-		directory := filepath.Join(directory, cluster.Context)
-
-		options := gather.Options{
-			Kubeconfig: kubeconfig,
-			Context:    cluster.Context,
-			Namespaces: namespaces,
-			Log:        log.Named(cluster.Context),
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			g, err := gather.New(cluster.Config, directory, options)
-			if err != nil {
-				results <- result{Err: err}
-				return
-			}
-
-			err = g.Gather()
-			results <- result{Count: g.Count(), Err: err}
-			if err != nil {
-				return
-			}
-
-			elapsed := time.Since(start).Seconds()
-			if cluster.Context != "" {
-				log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
-					g.Count(), cluster.Context, elapsed)
-			} else {
-				log.Infof("Gathered %d resources on cluster in %.3f seconds",
-					g.Count(), elapsed)
-			}
-		}()
+	if remote {
+		remoteGather(clusters)
+	} else {
+		localGather(clusters)
 	}
-
-	wg.Wait()
-	close(results)
-
-	count := int32(0)
-
-	for r := range results {
-		if r.Err != nil {
-			log.Fatal(r.Err)
-		}
-		count += r.Count
-	}
-
-	if len(namespaces) != 0 && count == 0 {
-		// Likely a user error like a wrong namespace.
-		log.Warnf("No resource gathered from namespaces %v", namespaces)
-	}
-
-	log.Infof("Gathered %d resources from %d clusters in %.3f seconds",
-		count, len(clusters), time.Since(start).Seconds())
 }
 
 func createLogger(directory string, verbose bool) *zap.SugaredLogger {
