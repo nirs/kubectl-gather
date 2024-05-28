@@ -23,7 +23,7 @@ var verbose bool
 var log *zap.SugaredLogger
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
-  # store it in gather-{timestamp}.
+  # store it in gather.{timestamp}.
   kubectl gather --kubeconfig my-kubeconfig
 
   # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
