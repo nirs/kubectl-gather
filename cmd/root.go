@@ -27,16 +27,16 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   kubectl gather --kubeconfig my-kubeconfig
 
   # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
-  # it in "gather/", using default kubeconfig (~/.kube/config).
-  kubectl gather --directory gather --contexts dr1,dr2,hub
+  # it in "gather.local/", using default kubeconfig (~/.kube/config).
+  kubectl gather --contexts dr1,dr2,hub --directory gather.local
 
-  # Gather data from namespaces "my-ns" and "other-ns" in cluster "dr1" and
-  # store it in gather/, using default kubeconfig (~/.kube/config).
-  kubectl gather --directory gather --contexts dr1 --namespaces my-ns,other-ns
+  # Gather data from namespaces "my-ns" and "other-ns" in clusters "dr1", "dr2",
+  # and "hub", and store it in "gather.ns/".
+  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --directory gather.ns
 
-  # Gather data on the remote clusters "dr1", "dr2" and "hub" and download
-  # gathered data to "gather". Requires the "oc" command.
-  kubectl gather --directory gather --contexts dr1,dr2,hub --remote`
+  # Gather data on the remote clusters "dr1", "dr2" and "hub" and download it to
+  # "gather.remote/". Requires the "oc" command.
+  kubectl gather --contexts dr1,dr2,hub --remote --directory gather.remote`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
