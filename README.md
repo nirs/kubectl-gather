@@ -359,6 +359,44 @@ $ du -sm gather.remote/*/*/*/* | sort -rn | head
 174	gather.remote/kevin-rdr-c2/quay-io-nirsof-gather-sha256-8999a022a9f243df3255f8bb41977fd6936c311cb20a015cbc632a873530da9e/namespaces/openshift-openstack-infra
 ```
 
+For remove gathering the directory structure is a little bit deeper. If
+you used `must-gather` this probably looks familiar:
+
+```
+$ tree -L 3 gather.remote/
+gather.remote/
+├── gather.log
+├── kevin-rdr-c1
+│   ├── event-filter.html
+│   ├── must-gather.log
+│   ├── quay-io-nirsof-gather-sha256-8999a022a9f243df3255f8bb41977fd6936c311cb20a015cbc632a873530da9e
+│   │   ├── addons
+│   │   ├── cluster
+│   │   ├── gather.log
+│   │   ├── namespaces
+│   │   └── version
+│   └── timestamp
+├── kevin-rdr-c2
+│   ├── event-filter.html
+│   ├── must-gather.log
+│   ├── quay-io-nirsof-gather-sha256-8999a022a9f243df3255f8bb41977fd6936c311cb20a015cbc632a873530da9e
+│   │   ├── addons
+│   │   ├── cluster
+│   │   ├── gather.log
+│   │   ├── namespaces
+│   │   └── version
+│   └── timestamp
+└── kevin-rdr-hub
+    ├── event-filter.html
+    ├── must-gather.log
+    ├── quay-io-nirsof-gather-sha256-8999a022a9f243df3255f8bb41977fd6936c311cb20a015cbc632a873530da9e
+    │   ├── cluster
+    │   ├── gather.log
+    │   ├── namespaces
+    │   └── version
+    └── timestamp
+```
+
 Gathering only specific namespaces from these clusters is much quicker.
 In this example we gather data related to single DR protected VM:
 
