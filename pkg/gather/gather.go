@@ -123,31 +123,31 @@ func (g *Gatherer) Count() int32 {
 }
 
 func (g *Gatherer) gatherAPIResources() error {
-	if len(g.opts.Namespaces) != 0 {
-		found, err := g.validateNamespaces()
+	var namespaces []string
+
+	if len(g.opts.Namespaces) > 0 {
+		namespaces, err := g.lookupNamespaces()
 		if err != nil {
 			// We cannot gather anything.
 			return err
 		}
 
-		if !found {
+		if len(namespaces) == 0 {
 			// Nothing to gather - expected conditions when gathering namespace
 			// from multiple cluster when namespace exists only on some.
+			g.log.Debug("No namespace to gather")
 			return nil
 		}
+	}
+
+	if len(namespaces) == 0 {
+		namespaces = []string{metav1.NamespaceAll}
 	}
 
 	resources, err := g.listAPIResources()
 	if err != nil {
 		// We cannot gather anything.
 		return fmt.Errorf("cannot list api resources: %s", err)
-	}
-
-	var namespaces []string
-	if len(g.opts.Namespaces) == 0 {
-		namespaces = []string{metav1.NamespaceAll}
-	} else {
-		namespaces = g.opts.Namespaces
 	}
 
 	for i := range resources {
@@ -198,9 +198,9 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	return resources, nil
 }
 
-// validateNamespaces tells if at least one namespaces exists in cluster. It fails we
-// cannot get one of the namespaces for other reason.
-func (g *Gatherer) validateNamespaces() (bool, error) {
+// lookupNamespaces looks up the requested namespaces and return a list of
+// available namespaces on this cluster.
+func (g *Gatherer) lookupNamespaces() ([]string, error) {
 	gvr := corev1.SchemeGroupVersion.WithResource("namespaces")
 	var found []string
 
@@ -209,7 +209,7 @@ func (g *Gatherer) validateNamespaces() (bool, error) {
 			Get(context.TODO(), namespace, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
-				return false, fmt.Errorf("cannot get namespace %q: %s", namespace, err)
+				return nil, fmt.Errorf("cannot get namespace %q: %s", namespace, err)
 			}
 
 			// Expected condition when gathering multiple clusters.
@@ -220,11 +220,7 @@ func (g *Gatherer) validateNamespaces() (bool, error) {
 		found = append(found, namespace)
 	}
 
-	g.log.Debugf("Using namespaces %v", found)
-	g.opts.Namespaces = found
-
-	// If we found some of the namespaces we have some work to do.
-	return len(found) > 0, nil
+	return found, nil
 }
 
 func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource) bool {
