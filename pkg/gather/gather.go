@@ -28,6 +28,7 @@ type Options struct {
 	Kubeconfig string
 	Context    string
 	Namespaces []string
+	Addons     []string
 	Log        *zap.SugaredLogger
 }
 

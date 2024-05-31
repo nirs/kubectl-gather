@@ -38,6 +38,7 @@ func localGather(clusters []*clusterConfig) {
 			Kubeconfig: kubeconfig,
 			Context:    cluster.Context,
 			Namespaces: namespaces,
+			Addons:     addons,
 			Log:        log.Named(cluster.Context),
 		}
 

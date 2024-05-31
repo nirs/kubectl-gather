@@ -18,6 +18,7 @@ var directory string
 var kubeconfig string
 var contexts []string
 var namespaces []string
+var addons []string
 var remote bool
 var verbose bool
 var log *zap.SugaredLogger
@@ -36,7 +37,11 @@ var example = `  # Gather data from all namespaces in current context in my-kube
 
   # Gather data on the remote clusters "dr1", "dr2" and "hub" and download it to
   # "gather.remote/". Requires the "oc" command.
-  kubectl gather --contexts dr1,dr2,hub --remote --directory gather.remote`
+  kubectl gather --contexts dr1,dr2,hub --remote --directory gather.remote
+
+  # Enable only the "logs" addon, gathering all reosurces and pod logs. Use
+  # --addons= to disable all addons.
+  kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
@@ -68,7 +73,9 @@ func init() {
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
 		"comma separated list of contexts to gather data from")
 	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,
-		"comma separated list of namespaces to gather data from")
+		"if specified, comma separated list of namespaces to gather data from")
+	rootCmd.Flags().StringSliceVar(&addons, "addons", nil,
+		"if specified, comma separated list of addons to enable")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
@@ -92,6 +99,12 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Infof("Gathering from namespaces %q", namespaces)
 	} else {
 		log.Infof("Gathering from all namespaces")
+	}
+
+	if addons != nil {
+		log.Infof("Using addons %q", addons)
+	} else {
+		log.Infof("Using all addons")
 	}
 
 	if !cmd.Flags().Changed("directory") {

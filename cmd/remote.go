@@ -101,6 +101,10 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 		remoteArgs = append(remoteArgs, "--namespaces="+strings.Join(namespaces, ","))
 	}
 
+	if addons != nil {
+		remoteArgs = append(remoteArgs, "--addons="+strings.Join(addons, ","))
+	}
+
 	if len(remoteArgs) > 0 {
 		args = append(args, "--", "/usr/bin/gather")
 		args = append(args, remoteArgs...)
