@@ -113,7 +113,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) 
 		// PodInitializing" so there is no way to detect the actul problem.
 		// Since this is expected situation, and getting logs is best effort, we
 		// log this in debug level.
-		g.log.Debugf("Cannot get log for \"%s/%s\": %+v", container, which, err)
+		g.log.Debugf("Cannot get log for \"%s/%s\": %v", container, which, err)
 		return
 	}
 
