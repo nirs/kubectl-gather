@@ -13,19 +13,12 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-type logType string
-
-const (
-	current  = logType("current")
-	previous = logType("previous")
-)
-
 type LogsAddon struct {
-	client *rest.RESTClient
+	client *kubernetes.Clientset
 	output *OutputDirectory
 	opts   *Options
 	q      Queuer
@@ -44,13 +37,7 @@ func (c containerInfo) String() string {
 }
 
 func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*LogsAddon, error) {
-	logsConfig := rest.CopyConfig(config)
-
-	logsConfig.APIPath = "api"
-	logsConfig.GroupVersion = &corev1.SchemeGroupVersion
-	logsConfig.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
-
-	client, err := rest.RESTClientForConfigAndClient(logsConfig, httpClient)
+	client, err := kubernetes.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +64,15 @@ func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 		container := containers[i]
 
 		g.q.Queue(func() error {
-			g.gatherContainerLog(container, current)
+			opts := corev1.PodLogOptions{Container: container.Name}
+			g.gatherContainerLog(container, &opts)
 			return nil
 		})
 
 		if container.HasPreviousLog {
 			g.q.Queue(func() error {
-				g.gatherContainerLog(container, previous)
+				opts := corev1.PodLogOptions{Container: container.Name, Previous: true}
+				g.gatherContainerLog(container, &opts)
 				return nil
 			})
 		}
@@ -92,18 +81,15 @@ func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 	return nil
 }
 
-func (g *LogsAddon) gatherContainerLog(container *containerInfo, which logType) {
+func (g *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.PodLogOptions) {
 	start := time.Now()
 
-	req := g.client.Get().
-		Namespace(container.Namespace).
-		Resource("pods").
-		Name(container.Pod).
-		SubResource("log").
-		Param("container", container.Name)
-	if which == previous {
-		req.Param("previous", "true")
+	which := "current"
+	if opts.Previous {
+		which = "previous"
 	}
+
+	req := g.client.CoreV1().Pods(container.Namespace).GetLogs(container.Pod, opts)
 
 	src, err := req.Stream(context.TODO())
 	if err != nil {
