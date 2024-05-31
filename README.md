@@ -420,6 +420,64 @@ $ du -sh gather.remote.app/
 2.7M	gather.remote.app/
 ```
 
+## Enabling specific addons
+
+By default we gather additional data like pod container logs and rook
+commands and external logs stored on the nodes. To control gathering of
+additional data, you can use the `--addons` flag. If the flag is not set
+all addons are enabled.
+
+Gathering only resources:
+
+```
+$ kubectl gather --contexts dr1,dr2 --addons= -d gather.resources
+2024-06-01T02:13:08.117+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
+2024-06-01T02:13:08.118+0300	INFO	gather	Gathering from all namespaces
+2024-06-01T02:13:08.119+0300	INFO	gather	Using addons []
+2024-06-01T02:13:08.119+0300	INFO	gather	Gathering from cluster "dr1"
+2024-06-01T02:13:08.119+0300	INFO	gather	Gathering from cluster "dr2"
+2024-06-01T02:13:08.942+0300	INFO	gather	Gathered 557 resources from cluster "dr1" in 0.823 seconds
+2024-06-01T02:13:08.946+0300	INFO	gather	Gathered 557 resources from cluster "dr2" in 0.828 seconds
+2024-06-01T02:13:08.946+0300	INFO	gather	Gathered 1114 resources from 2 clusters in 0.828 seconds
+```
+
+Gathering resource and pod container logs:
+
+```
+$ kubectl gather --contexts dr1,dr2 --addons logs -d gather.logs
+2024-06-01T02:12:07.775+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
+2024-06-01T02:12:07.776+0300	INFO	gather	Gathering from all namespaces
+2024-06-01T02:12:07.777+0300	INFO	gather	Using addons ["logs"]
+2024-06-01T02:12:07.777+0300	INFO	gather	Gathering from cluster "dr1"
+2024-06-01T02:12:07.777+0300	INFO	gather	Gathering from cluster "dr2"
+2024-06-01T02:12:11.580+0300	INFO	gather	Gathered 553 resources from cluster "dr2" in 3.803 seconds
+2024-06-01T02:12:11.799+0300	INFO	gather	Gathered 553 resources from cluster "dr1" in 4.022 seconds
+2024-06-01T02:12:11.799+0300	INFO	gather	Gathered 1106 resources from 2 clusters in 4.022 seconds
+```
+
+Gathering everything:
+
+```
+$ kubectl gather --contexts dr1,dr2 -d gather.all
+2024-06-01T02:11:46.490+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
+2024-06-01T02:11:46.492+0300	INFO	gather	Gathering from all namespaces
+2024-06-01T02:11:46.492+0300	INFO	gather	Using all addons
+2024-06-01T02:11:46.492+0300	INFO	gather	Gathering from cluster "dr1"
+2024-06-01T02:11:46.492+0300	INFO	gather	Gathering from cluster "dr2"
+2024-06-01T02:11:50.680+0300	INFO	gather	Gathered 549 resources from cluster "dr1" in 4.189 seconds
+2024-06-01T02:11:50.788+0300	INFO	gather	Gathered 549 resources from cluster "dr2" in 4.296 seconds
+2024-06-01T02:11:50.788+0300	INFO	gather	Gathered 1098 resources from 2 clusters in 4.297 seconds
+```
+
+Comparing the gathered data:
+
+```
+$ du -sh gather.*
+108M	gather.all
+35M	    gather.logs
+8.8M	gather.resources
+```
+
 ## Similar projects
 
 - [must-gather](https://github.com/openshift/must-gather) - similar tool
