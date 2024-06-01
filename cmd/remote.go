@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const remoteDefaultImage = "quay.io/nirsof/gather:latest"
+const remoteDefaultImage = "quay.io/nirsof/gather:0.2"
 
 func remoteGather(clusters []*clusterConfig) {
 	start := time.Now()
