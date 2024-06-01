@@ -126,7 +126,9 @@ func (g *Gatherer) gatherAPIResources() error {
 	var namespaces []string
 
 	if len(g.opts.Namespaces) > 0 {
-		namespaces, err := g.lookupNamespaces()
+		var err error
+
+		namespaces, err = g.lookupNamespaces()
 		if err != nil {
 			// We cannot gather anything.
 			return err
