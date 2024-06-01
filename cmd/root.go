@@ -89,7 +89,7 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 
 	if len(namespaces) != 0 {
-		log.Infof("Gathering from namespaces %v", namespaces)
+		log.Infof("Gathering from namespaces %q", namespaces)
 	} else {
 		log.Infof("Gathering from all namespaces")
 	}
