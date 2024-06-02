@@ -24,6 +24,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// Based on stats from OpenShift ODF cluster, this value keeps payload size
+// under 4 MiB in most cases. Higher values decrease the number of requests and
+// increase CPU time and memory usage.
+// TODO: Needs more testing to find the optimal value.
+const listResourcesLimit = 100
+
 type Options struct {
 	Kubeconfig string
 	Context    string
@@ -263,35 +269,64 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 	start := time.Now()
 
-	list, err := g.listResources(r, namespace)
-	if err != nil {
-		g.log.Warnf("Cannot list %q: %s", r.Name(), err)
-		return
-	}
+	opts := metav1.ListOptions{Limit: listResourcesLimit}
+	count := 0
 
-	g.count.Add(int32(len(list.Items)))
-
-	addon := g.addons[r.Name()]
-
-	for i := range list.Items {
-		item := &list.Items[i]
-
-		err := g.dumpResource(r, item)
+	for {
+		list, err := g.listResources(r, namespace, opts)
 		if err != nil {
-			g.log.Warnf("Cannot dump \"%s/%s\": %s", r.Name(), item.GetName(), err)
+			// Fall back to full list only if this was an attempt to get the next
+			// page and the resource expired.
+			if opts.Continue == "" || !errors.IsResourceExpired(err) {
+				g.log.Warnf("Cannot list %q: %s", r.Name(), err)
+				break
+			}
+
+			g.log.Debugf("Falling back to full list for %q: %s", r.Name(), err)
+
+			opts.Limit = 0
+			opts.Continue = ""
+
+			list, err = g.listResources(r, namespace, opts)
+			if err != nil {
+				g.log.Warnf("Cannot list %q: %s", r.Name(), err)
+				break
+			}
+
+			// If we got a full list, don't count twice what we aleady gathered.
+			count = 0
 		}
 
-		if addon != nil {
-			if err := addon.Inspect(item); err != nil {
-				g.log.Warnf("Cannot inspect \"%s/%s\": %s", r.Name(), item.GetName(), err)
+		count += len(list.Items)
+
+		addon := g.addons[r.Name()]
+
+		for i := range list.Items {
+			item := &list.Items[i]
+
+			err := g.dumpResource(r, item)
+			if err != nil {
+				g.log.Warnf("Cannot dump \"%s/%s\": %s", r.Name(), item.GetName(), err)
+			}
+
+			if addon != nil {
+				if err := addon.Inspect(item); err != nil {
+					g.log.Warnf("Cannot inspect \"%s/%s\": %s", r.Name(), item.GetName(), err)
+				}
 			}
 		}
+
+		opts.Continue = list.GetContinue()
+		if opts.Continue == "" {
+			break
+		}
 	}
 
-	g.log.Debugf("Gathered %d %q in %.3f seconds", len(list.Items), r.Name(), time.Since(start).Seconds())
+	g.count.Add(int32(count))
+	g.log.Debugf("Gathered %d %q in %.3f seconds", count, r.Name(), time.Since(start).Seconds())
 }
 
-func (g *Gatherer) listResources(r *resourceInfo, namespace string) (*unstructured.UnstructuredList, error) {
+func (g *Gatherer) listResources(r *resourceInfo, namespace string, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	start := time.Now()
 
 	var gvr = schema.GroupVersionResource{
@@ -301,7 +336,6 @@ func (g *Gatherer) listResources(r *resourceInfo, namespace string) (*unstructur
 	}
 
 	ctx := context.TODO()
-	var opts metav1.ListOptions
 	var list *unstructured.UnstructuredList
 	var err error
 
