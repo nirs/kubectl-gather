@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: The kubectl-gather authors
 # SPDX-License-Identifier: Apache-2.0
 
-REGITRY ?= quay.io
+REGISTRY ?= quay.io
 REPO ?= nirsof
 IMAGE ?= gather
 TAG ?= 0.3
 
-image := $(REGITRY)/$(REPO)/$(IMAGE):$(TAG)
+image := $(REGISTRY)/$(REPO)/$(IMAGE):$(TAG)
 
 .PHONY: all kubectl-gather
 
