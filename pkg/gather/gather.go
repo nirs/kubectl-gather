@@ -135,7 +135,7 @@ func (g *Gatherer) gatherAPIResources() error {
 	if len(g.opts.Namespaces) > 0 {
 		var err error
 
-		namespaces, err = g.lookupNamespaces()
+		namespaces, err = g.gatherNamespaces()
 		if err != nil {
 			// We cannot gather anything.
 			return err
@@ -210,14 +210,14 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	return resources, nil
 }
 
-// lookupNamespaces looks up the requested namespaces and return a list of
+// gatherNamespaces gathers the requested namespaces and return a list of
 // available namespaces on this cluster.
-func (g *Gatherer) lookupNamespaces() ([]string, error) {
+func (g *Gatherer) gatherNamespaces() ([]string, error) {
 	gvr := corev1.SchemeGroupVersion.WithResource("namespaces")
 	var found []string
 
 	for _, namespace := range g.opts.Namespaces {
-		_, err := g.resourcesClient.Resource(gvr).
+		ns, err := g.resourcesClient.Resource(gvr).
 			Get(context.TODO(), namespace, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
@@ -228,6 +228,9 @@ func (g *Gatherer) lookupNamespaces() ([]string, error) {
 			g.log.Debugf("Skipping missing namespace %q", namespace)
 			continue
 		}
+
+		r := resourceInfo{GroupVersionResource: gvr, Namespaced: false}
+		g.dumpResource(&r, ns)
 
 		found = append(found, namespace)
 	}
