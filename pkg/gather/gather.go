@@ -55,8 +55,8 @@ type Gatherer struct {
 }
 
 type resourceInfo struct {
-	GroupVersion *schema.GroupVersion
-	APIResource  *metav1.APIResource
+	schema.GroupVersionResource
+	Namespaced bool
 }
 
 // Name returns the full name of the reosurce, used as the directory name in the
@@ -64,10 +64,10 @@ type resourceInfo struct {
 // or namespace direcotry. Reosurces with non-empty group are gathered in a
 // group directory.
 func (r *resourceInfo) Name() string {
-	if r.GroupVersion.Group == "" {
-		return r.APIResource.Name
+	if r.Group == "" {
+		return r.Resource
 	}
-	return r.GroupVersion.Group + "/" + r.APIResource.Name
+	return r.Group + "/" + r.Resource
 }
 
 func New(config *rest.Config, directory string, opts Options) (*Gatherer, error) {
@@ -198,7 +198,10 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 				continue
 			}
 
-			resources = append(resources, resourceInfo{GroupVersion: &gv, APIResource: res})
+			resources = append(resources, resourceInfo{
+				GroupVersionResource: gv.WithResource(res.Name),
+				Namespaced:           res.Namespaced,
+			})
 		}
 	}
 
@@ -329,20 +332,17 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 func (g *Gatherer) listResources(r *resourceInfo, namespace string, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	start := time.Now()
 
-	var gvr = schema.GroupVersionResource{
-		Group:    r.GroupVersion.Group,
-		Version:  r.GroupVersion.Version,
-		Resource: r.APIResource.Name,
-	}
-
 	ctx := context.TODO()
 	var list *unstructured.UnstructuredList
 	var err error
 
-	if r.APIResource.Namespaced {
-		list, err = g.resourcesClient.Resource(gvr).Namespace(namespace).List(ctx, opts)
+	if r.Namespaced {
+		list, err = g.resourcesClient.Resource(r.GroupVersionResource).
+			Namespace(namespace).
+			List(ctx, opts)
 	} else {
-		list, err = g.resourcesClient.Resource(gvr).List(ctx, opts)
+		list, err = g.resourcesClient.Resource(r.GroupVersionResource).
+			List(ctx, opts)
 	}
 
 	if err != nil {
@@ -371,7 +371,7 @@ func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured
 }
 
 func (g *Gatherer) createResource(r *resourceInfo, item *unstructured.Unstructured) (io.WriteCloser, error) {
-	if r.APIResource.Namespaced {
+	if r.Namespaced {
 		return g.output.CreateNamespacedResource(item.GetNamespace(), r.Name(), item.GetName())
 	} else {
 		return g.output.CreateClusterResource(r.Name(), item.GetName())
