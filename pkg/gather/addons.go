@@ -6,27 +6,57 @@ package gather
 import (
 	"net/http"
 	"slices"
+	"strings"
 
 	"k8s.io/client-go/rest"
 )
 
+type addonFunc func(*rest.Config, *http.Client, *OutputDirectory, *Options, Queuer) (Addon, error)
+
+type addonInfo struct {
+	Resource  string
+	AddonFunc addonFunc
+}
+
+var addonRegistry map[string]addonInfo
+
+func init() {
+	addonRegistry = map[string]addonInfo{}
+
+	addonRegistry["logs"] = addonInfo{
+		Resource: "pods",
+		AddonFunc: func(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
+			addon, err := NewLogsAddon(config, client, out, opts, q)
+			if err != nil {
+				return nil, err
+			}
+			return addon, nil
+		},
+	}
+
+	addonRegistry["rook"] = addonInfo{
+		Resource: "ceph.rook.io/cephclusters",
+		AddonFunc: func(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
+			addon, err := NewRookCephAddon(config, client, out, opts, q)
+			if err != nil {
+				return nil, err
+			}
+			return addon, nil
+		},
+	}
+}
+
 func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (map[string]Addon, error) {
 	registry := map[string]Addon{}
 
-	if addonEnabled("logs", opts) {
-		addon, err := NewLogsAddon(config, client, out, opts, q)
-		if err != nil {
-			return nil, err
+	for name, addonInfo := range addonRegistry {
+		if addonEnabled(name, opts) {
+			addon, err := addonInfo.AddonFunc(config, client, out, opts, q)
+			if err != nil {
+				return nil, err
+			}
+			registry[addonInfo.Resource] = addon
 		}
-		registry["pods"] = addon
-	}
-
-	if addonEnabled("rook", opts) {
-		addon, err := NewRookCephAddon(config, client, out, opts, q)
-		if err != nil {
-			return nil, err
-		}
-		registry["ceph.rook.io/cephclusters"] = addon
 	}
 
 	return registry, nil
@@ -34,4 +64,12 @@ func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory
 
 func addonEnabled(name string, opts *Options) bool {
 	return opts.Addons == nil || slices.Contains(opts.Addons, name)
+}
+
+func AvailableAddons() string {
+	addonNames := make([]string, 0, len(addonRegistry))
+	for name := range addonRegistry {
+		addonNames = append(addonNames, name)
+	}
+	return strings.Join(addonNames, ", ")
 }
