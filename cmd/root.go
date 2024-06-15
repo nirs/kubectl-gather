@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	stdlog "log"
 	"os"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/nirs/kubectl-gather/pkg/gather"
 )
 
 var directory string
@@ -75,7 +78,8 @@ func init() {
 	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,
 		"if specified, comma separated list of namespaces to gather data from")
 	rootCmd.Flags().StringSliceVar(&addons, "addons", nil,
-		"if specified, comma separated list of addons to enable")
+		fmt.Sprintf("if specified, comma separated list of addons to enable (available addons: %s)",
+			gather.AvailableAddons()))
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
