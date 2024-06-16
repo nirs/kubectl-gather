@@ -36,6 +36,13 @@ func (c containerInfo) String() string {
 	return c.Namespace + "/" + c.Pod + "/" + c.Name
 }
 
+func init() {
+	registerAddon("logs", addonInfo{
+		Resource:  "pods",
+		AddonFunc: NewLogsAddon,
+	})
+}
+
 func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
 	client, err := kubernetes.NewForConfigAndClient(config, httpClient)
 	if err != nil {

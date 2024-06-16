@@ -29,6 +29,13 @@ type RookAddon struct {
 	log    *zap.SugaredLogger
 }
 
+func init() {
+	registerAddon("rook", addonInfo{
+		Resource:  "ceph.rook.io/cephclusters",
+		AddonFunc: NewRookCephAddon,
+	})
+}
+
 func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
 	clientSet, err := kubernetes.NewForConfigAndClient(config, client)
 	if err != nil {

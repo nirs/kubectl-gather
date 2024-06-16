@@ -17,20 +17,10 @@ type addonInfo struct {
 	AddonFunc addonFunc
 }
 
-var addonRegistry map[string]addonInfo
+var addonRegistry = map[string]addonInfo{}
 
-func init() {
-	addonRegistry = map[string]addonInfo{}
-
-	addonRegistry["logs"] = addonInfo{
-		Resource:  "pods",
-		AddonFunc: NewLogsAddon,
-	}
-
-	addonRegistry["rook"] = addonInfo{
-		Resource:  "ceph.rook.io/cephclusters",
-		AddonFunc: NewRookCephAddon,
-	}
+func registerAddon(name string, ai addonInfo) {
+	addonRegistry[name] = ai
 }
 
 func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (map[string]Addon, error) {
