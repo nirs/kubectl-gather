@@ -232,7 +232,7 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 			continue
 		}
 
-		r := resourceInfo{GroupVersionResource: gvr, Namespaced: false}
+		r := resourceInfo{GroupVersionResource: gvr}
 		g.dumpResource(&r, ns)
 
 		found = append(found, namespace)
