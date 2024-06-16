@@ -8,6 +8,8 @@ import (
 	stdlog "log"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -79,7 +81,7 @@ func init() {
 		"if specified, comma separated list of namespaces to gather data from")
 	rootCmd.Flags().StringSliceVar(&addons, "addons", nil,
 		fmt.Sprintf("if specified, comma separated list of addons to enable (available addons: %s)",
-			gather.AvailableAddons()))
+			availableAddons()))
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
@@ -151,4 +153,10 @@ func createLogger(directory string, verbose bool) *zap.SugaredLogger {
 
 func defaultGatherDirectory() string {
 	return time.Now().Format("gather.20060102150405")
+}
+
+func availableAddons() string {
+	names := gather.AvailableAddons()
+	slices.Sort(names)
+	return strings.Join(names, ", ")
 }

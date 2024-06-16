@@ -6,7 +6,6 @@ package gather
 import (
 	"net/http"
 	"slices"
-	"strings"
 
 	"k8s.io/client-go/rest"
 )
@@ -66,10 +65,10 @@ func addonEnabled(name string, opts *Options) bool {
 	return opts.Addons == nil || slices.Contains(opts.Addons, name)
 }
 
-func AvailableAddons() string {
+func AvailableAddons() []string {
 	addonNames := make([]string, 0, len(addonRegistry))
 	for name := range addonRegistry {
 		addonNames = append(addonNames, name)
 	}
-	return strings.Join(addonNames, ", ")
+	return addonNames
 }
