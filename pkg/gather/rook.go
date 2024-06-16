@@ -29,7 +29,7 @@ type RookAddon struct {
 	log    *zap.SugaredLogger
 }
 
-func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (*RookAddon, error) {
+func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
 	clientSet, err := kubernetes.NewForConfigAndClient(config, client)
 	if err != nil {
 		return nil, err

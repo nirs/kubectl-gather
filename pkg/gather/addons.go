@@ -23,25 +23,13 @@ func init() {
 	addonRegistry = map[string]addonInfo{}
 
 	addonRegistry["logs"] = addonInfo{
-		Resource: "pods",
-		AddonFunc: func(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
-			addon, err := NewLogsAddon(config, client, out, opts, q)
-			if err != nil {
-				return nil, err
-			}
-			return addon, nil
-		},
+		Resource:  "pods",
+		AddonFunc: NewLogsAddon,
 	}
 
 	addonRegistry["rook"] = addonInfo{
-		Resource: "ceph.rook.io/cephclusters",
-		AddonFunc: func(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
-			addon, err := NewRookCephAddon(config, client, out, opts, q)
-			if err != nil {
-				return nil, err
-			}
-			return addon, nil
-		},
+		Resource:  "ceph.rook.io/cephclusters",
+		AddonFunc: NewRookCephAddon,
 	}
 }
 
