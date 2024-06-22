@@ -45,16 +45,15 @@ type Addon interface {
 }
 
 type Gatherer struct {
-	config          *rest.Config
-	httpClient      *http.Client
-	discoveryClient *discovery.DiscoveryClient
-	resourcesClient *dynamic.DynamicClient
-	addons          map[string]Addon
-	output          OutputDirectory
-	opts            *Options
-	wq              *WorkQueue
-	log             *zap.SugaredLogger
-	count           atomic.Int32
+	config     *rest.Config
+	httpClient *http.Client
+	client     *dynamic.DynamicClient
+	addons     map[string]Addon
+	output     OutputDirectory
+	opts       *Options
+	wq         *WorkQueue
+	log        *zap.SugaredLogger
+	count      atomic.Int32
 }
 
 type resourceInfo struct {
@@ -89,12 +88,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		return nil, err
 	}
 
-	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(config, httpClient)
-	if err != nil {
-		return nil, err
-	}
-
-	resourcesClient, err := dynamic.NewForConfigAndClient(config, httpClient)
+	client, err := dynamic.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -103,14 +97,13 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	wq := NewWorkQueue(6, 500)
 
 	g := &Gatherer{
-		config:          config,
-		httpClient:      httpClient,
-		discoveryClient: discoveryClient,
-		resourcesClient: resourcesClient,
-		output:          OutputDirectory{base: directory},
-		opts:            &opts,
-		wq:              wq,
-		log:             opts.Log,
+		config:     config,
+		httpClient: httpClient,
+		client:     client,
+		output:     OutputDirectory{base: directory},
+		opts:       &opts,
+		wq:         wq,
+		log:        opts.Log,
 	}
 
 	addons, err := createAddons(&gatherBackend{g})
@@ -181,7 +174,12 @@ func (g *Gatherer) gatherAPIResources() error {
 func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	start := time.Now()
 
-	items, err := g.discoveryClient.ServerPreferredResources()
+	client, err := discovery.NewDiscoveryClientForConfigAndClient(g.config, g.httpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := client.ServerPreferredResources()
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +220,7 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 	var found []string
 
 	for _, namespace := range g.opts.Namespaces {
-		ns, err := g.resourcesClient.Resource(gvr).
+		ns, err := g.client.Resource(gvr).
 			Get(context.TODO(), namespace, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
@@ -345,11 +343,11 @@ func (g *Gatherer) listResources(r *resourceInfo, namespace string, opts metav1.
 	var err error
 
 	if r.Namespaced {
-		list, err = g.resourcesClient.Resource(r.GroupVersionResource).
+		list, err = g.client.Resource(r.GroupVersionResource).
 			Namespace(namespace).
 			List(ctx, opts)
 	} else {
-		list, err = g.resourcesClient.Resource(r.GroupVersionResource).
+		list, err = g.client.Resource(r.GroupVersionResource).
 			List(ctx, opts)
 	}
 
