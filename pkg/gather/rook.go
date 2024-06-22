@@ -20,6 +20,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	rookName = "rook"
+)
+
 type RookAddon struct {
 	name   string
 	out    *OutputDirectory
@@ -30,7 +34,7 @@ type RookAddon struct {
 }
 
 func init() {
-	registerAddon("rook", addonInfo{
+	registerAddon(rookName, addonInfo{
 		Resource:  "ceph.rook.io/cephclusters",
 		AddonFunc: NewRookCephAddon,
 	})
@@ -43,12 +47,11 @@ func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirec
 	}
 
 	return &RookAddon{
-		name:   "rook",
 		out:    out,
 		opts:   opts,
 		q:      q,
 		client: clientSet,
-		log:    opts.Log.Named("rook"),
+		log:    opts.Log.Named(rookName),
 	}, nil
 }
 
@@ -86,7 +89,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	a.log.Debugf("Using pod %q", tools.Name)
 
-	commands, err := a.out.CreateAddonDir(a.name, "commands")
+	commands, err := a.out.CreateAddonDir(rookName, "commands")
 	if err != nil {
 		a.log.Warnf("Cannot create commnads directory: %s", err)
 		return
@@ -185,7 +188,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 
 	a.log.Debugf("Agent pod %q running in %.3f seconds", agent, time.Since(start).Seconds())
 
-	logs, err := a.out.CreateAddonDir(a.name, "logs", nodeName)
+	logs, err := a.out.CreateAddonDir(rookName, "logs", nodeName)
 	if err != nil {
 		a.log.Warnf("Cannot create logs directory: %s", err)
 		return
@@ -202,7 +205,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 }
 
 func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, error) {
-	agent := NewAgentPod(a.name+"-"+nodeName, a.client, a.log)
+	agent := NewAgentPod(rookName+"-"+nodeName, a.client, a.log)
 	agent.Pod.Spec.NodeName = nodeName
 	agent.Pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
 		{

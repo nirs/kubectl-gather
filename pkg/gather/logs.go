@@ -17,6 +17,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	logsName = "logs"
+)
+
 type LogsAddon struct {
 	client *kubernetes.Clientset
 	output *OutputDirectory
@@ -37,7 +41,7 @@ func (c containerInfo) String() string {
 }
 
 func init() {
-	registerAddon("logs", addonInfo{
+	registerAddon(logsName, addonInfo{
 		Resource:  "pods",
 		AddonFunc: NewLogsAddon,
 	})
@@ -54,7 +58,7 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 		output: out,
 		opts:   opts,
 		q:      q,
-		log:    opts.Log.Named("logs"),
+		log:    opts.Log.Named(logsName),
 	}, nil
 }
 
