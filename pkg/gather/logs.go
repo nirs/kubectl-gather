@@ -62,10 +62,10 @@ func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirec
 	}, nil
 }
 
-func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
-	g.log.Debugf("Inspecting pod \"%s/%s\"", pod.GetNamespace(), pod.GetName())
+func (a *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
+	a.log.Debugf("Inspecting pod \"%s/%s\"", pod.GetNamespace(), pod.GetName())
 
-	containers, err := g.listContainers(pod)
+	containers, err := a.listContainers(pod)
 	if err != nil {
 		return fmt.Errorf("cannnot find containers in pod \"%s/%s\": %s",
 			pod.GetNamespace(), pod.GetName(), err)
@@ -74,16 +74,16 @@ func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 	for i := range containers {
 		container := containers[i]
 
-		g.q.Queue(func() error {
+		a.q.Queue(func() error {
 			opts := corev1.PodLogOptions{Container: container.Name}
-			g.gatherContainerLog(container, &opts)
+			a.gatherContainerLog(container, &opts)
 			return nil
 		})
 
 		if container.HasPreviousLog {
-			g.q.Queue(func() error {
+			a.q.Queue(func() error {
 				opts := corev1.PodLogOptions{Container: container.Name, Previous: true}
-				g.gatherContainerLog(container, &opts)
+				a.gatherContainerLog(container, &opts)
 				return nil
 			})
 		}
@@ -92,7 +92,7 @@ func (g *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 	return nil
 }
 
-func (g *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.PodLogOptions) {
+func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.PodLogOptions) {
 	start := time.Now()
 
 	which := "current"
@@ -100,7 +100,7 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 		which = "previous"
 	}
 
-	req := g.client.CoreV1().Pods(container.Namespace).GetLogs(container.Pod, opts)
+	req := a.client.CoreV1().Pods(container.Namespace).GetLogs(container.Pod, opts)
 
 	src, err := req.Stream(context.TODO())
 	if err != nil {
@@ -110,16 +110,16 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 		// PodInitializing" so there is no way to detect the actul problem.
 		// Since this is expected situation, and getting logs is best effort, we
 		// log this in debug level.
-		g.log.Debugf("Cannot get log for \"%s/%s\": %v", container, which, err)
+		a.log.Debugf("Cannot get log for \"%s/%s\": %v", container, which, err)
 		return
 	}
 
 	defer src.Close()
 
-	dst, err := g.output.CreateContainerLog(
+	dst, err := a.output.CreateContainerLog(
 		container.Namespace, container.Pod, container.Name, string(which))
 	if err != nil {
-		g.log.Warnf("Cannot create \"%s/%s.log\": %s", container, which, err)
+		a.log.Warnf("Cannot create \"%s/%s.log\": %s", container, which, err)
 		return
 	}
 
@@ -127,22 +127,22 @@ func (g *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 
 	n, err := io.Copy(dst, src)
 	if err != nil {
-		g.log.Warnf("Cannot copy \"%s/%s.log\": %s", container, which, err)
+		a.log.Warnf("Cannot copy \"%s/%s.log\": %s", container, which, err)
 	}
 
 	elapsed := time.Since(start).Seconds()
 	rate := float64(n) / float64(1024*1024) / elapsed
-	g.log.Debugf("Gathered \"%s/%s.log\" in %.3f seconds (%.2f MiB/s)",
+	a.log.Debugf("Gathered \"%s/%s.log\" in %.3f seconds (%.2f MiB/s)",
 		container, which, elapsed, rate)
 }
 
-func (g *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
+func (a *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
 	var result []*containerInfo
 
 	for _, key := range []string{"containerStatuses", "initContainerStatuses"} {
 		statuses, found, err := unstructured.NestedSlice(pod.Object, "status", key)
 		if err != nil {
-			g.log.Warnf("Cannot get %q for pod \"%s/%s\": %s",
+			a.log.Warnf("Cannot get %q for pod \"%s/%s\": %s",
 				key, pod.GetNamespace(), pod.GetName(), err)
 			continue
 		}
@@ -154,14 +154,14 @@ func (g *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*container
 		for _, c := range statuses {
 			status, ok := c.(map[string]interface{})
 			if !ok {
-				g.log.Warnf("Invalid container status for pod \"%s/%s\": %s",
+				a.log.Warnf("Invalid container status for pod \"%s/%s\": %s",
 					pod.GetNamespace(), pod.GetName(), status)
 				continue
 			}
 
 			name, found, err := unstructured.NestedString(status, "name")
 			if err != nil || !found {
-				g.log.Warnf("No container status name for pod \"%s/%s\": %s",
+				a.log.Warnf("No container status name for pod \"%s/%s\": %s",
 					pod.GetNamespace(), pod.GetName(), status)
 				continue
 			}
