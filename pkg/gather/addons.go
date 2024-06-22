@@ -10,7 +10,26 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type addonFunc func(*rest.Config, *http.Client, *OutputDirectory, *Options, Queuer) (Addon, error)
+type AddonBackend interface {
+	// Config returns the rest config for this cluster that can be used to
+	// create a new client.
+	Config() *rest.Config
+
+	// HTTPClient returns the http client connected to the cluster. It can be
+	// used to create a new client sharing the same http client.
+	HTTPClient() *http.Client
+
+	// Output returns the output for this gathering.
+	Output() *OutputDirectory
+
+	// Options returns gathering options for this cluster.
+	Options() *Options
+
+	// Queue function on the work queue.
+	Queue(WorkFunc)
+}
+
+type addonFunc func(AddonBackend) (Addon, error)
 
 type addonInfo struct {
 	Resource  string
@@ -23,12 +42,12 @@ func registerAddon(name string, ai addonInfo) {
 	addonRegistry[name] = ai
 }
 
-func createAddons(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (map[string]Addon, error) {
+func createAddons(backend AddonBackend) (map[string]Addon, error) {
 	registry := map[string]Addon{}
 
 	for name, addonInfo := range addonRegistry {
-		if addonEnabled(name, opts) {
-			addon, err := addonInfo.AddonFunc(config, client, out, opts, q)
+		if addonEnabled(name, backend.Options()) {
+			addon, err := addonInfo.AddonFunc(backend)
 			if err != nil {
 				return nil, err
 			}

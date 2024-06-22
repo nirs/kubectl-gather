@@ -6,7 +6,6 @@ package gather
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -25,10 +23,8 @@ const (
 )
 
 type RookAddon struct {
+	AddonBackend
 	name   string
-	out    *OutputDirectory
-	opts   *Options
-	q      Queuer
 	client *kubernetes.Clientset
 	log    *zap.SugaredLogger
 }
@@ -36,22 +32,20 @@ type RookAddon struct {
 func init() {
 	registerAddon(rookName, addonInfo{
 		Resource:  "ceph.rook.io/cephclusters",
-		AddonFunc: NewRookCephAddon,
+		AddonFunc: NewRookAddon,
 	})
 }
 
-func NewRookCephAddon(config *rest.Config, client *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
-	clientSet, err := kubernetes.NewForConfigAndClient(config, client)
+func NewRookAddon(backend AddonBackend) (Addon, error) {
+	clientSet, err := kubernetes.NewForConfigAndClient(backend.Config(), backend.HTTPClient())
 	if err != nil {
 		return nil, err
 	}
 
 	return &RookAddon{
-		out:    out,
-		opts:   opts,
-		q:      q,
-		client: clientSet,
-		log:    opts.Log.Named(rookName),
+		AddonBackend: backend,
+		client:       clientSet,
+		log:          backend.Options().Log.Named(rookName),
 	}, nil
 }
 
@@ -59,7 +53,7 @@ func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 	namespace := cephcluster.GetNamespace()
 	a.log.Debugf("Inspecting cephcluster \"%s/%s\"", namespace, cephcluster.GetName())
 
-	a.q.Queue(func() error {
+	a.Queue(func() error {
 		a.gatherCommands(namespace)
 		return nil
 	})
@@ -71,7 +65,7 @@ func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 			return nil
 		}
 
-		a.q.Queue(func() error {
+		a.Queue(func() error {
 			a.gatherLogs(namespace, dataDir)
 			return nil
 		})
@@ -89,7 +83,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	a.log.Debugf("Using pod %q", tools.Name)
 
-	commands, err := a.out.CreateAddonDir(rookName, "commands")
+	commands, err := a.Output().CreateAddonDir(rookName, "commands")
 	if err != nil {
 		a.log.Warnf("Cannot create commnads directory: %s", err)
 		return
@@ -97,11 +91,11 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	a.log.Debugf("Storing commands output in %q", commands)
 
-	rc := NewRemoteCommand(tools, a.opts, a.log, commands)
+	rc := NewRemoteCommand(tools, a.Options(), a.log, commands)
 
 	// Running remote ceph commands in parallel is much faster.
 
-	a.q.Queue(func() error {
+	a.Queue(func() error {
 		a.gatherCommand(rc, "ceph", "osd", "blocklist", "ls")
 		return nil
 	})
@@ -143,7 +137,7 @@ func (a *RookAddon) gatherLogs(namespace string, dataDir string) {
 
 	for i := range nodes {
 		nodeName := nodes[i]
-		a.q.Queue(func() error {
+		a.Queue(func() error {
 			a.gatherNodeLogs(namespace, nodeName, dataDir)
 			return nil
 		})
@@ -188,13 +182,13 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 
 	a.log.Debugf("Agent pod %q running in %.3f seconds", agent, time.Since(start).Seconds())
 
-	logs, err := a.out.CreateAddonDir(rookName, "logs", nodeName)
+	logs, err := a.Output().CreateAddonDir(rookName, "logs", nodeName)
 	if err != nil {
 		a.log.Warnf("Cannot create logs directory: %s", err)
 		return
 	}
 
-	rd := NewRemoteDirectory(agent.Pod, a.opts, a.log)
+	rd := NewRemoteDirectory(agent.Pod, a.Options(), a.log)
 	src := filepath.Join(dataDir, namespace, "log")
 
 	if err := rd.Gather(src, logs); err != nil {
