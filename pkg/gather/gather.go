@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -44,6 +45,8 @@ type Addon interface {
 }
 
 type Gatherer struct {
+	config          *rest.Config
+	httpClient      *http.Client
 	discoveryClient *discovery.DiscoveryClient
 	resourcesClient *dynamic.DynamicClient
 	addons          map[string]Addon
@@ -96,25 +99,27 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		return nil, err
 	}
 
-	output := OutputDirectory{base: directory}
-
 	// TODO: make configurable
 	wq := NewWorkQueue(6, 500)
 
-	addons, err := createAddons(config, httpClient, &output, &opts, wq)
+	g := &Gatherer{
+		config:          config,
+		httpClient:      httpClient,
+		discoveryClient: discoveryClient,
+		resourcesClient: resourcesClient,
+		output:          OutputDirectory{base: directory},
+		opts:            &opts,
+		wq:              wq,
+		log:             opts.Log,
+	}
+
+	addons, err := createAddons(&gatherBackend{g})
 	if err != nil {
 		return nil, err
 	}
 
-	return &Gatherer{
-		discoveryClient: discoveryClient,
-		resourcesClient: resourcesClient,
-		addons:          addons,
-		output:          output,
-		opts:            &opts,
-		wq:              wq,
-		log:             opts.Log,
-	}, nil
+	g.addons = addons
+	return g, nil
 }
 
 func (g *Gatherer) Gather() error {

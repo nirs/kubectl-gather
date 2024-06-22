@@ -7,14 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"time"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -22,10 +20,8 @@ const (
 )
 
 type LogsAddon struct {
+	AddonBackend
 	client *kubernetes.Clientset
-	output *OutputDirectory
-	opts   *Options
-	q      Queuer
 	log    *zap.SugaredLogger
 }
 
@@ -47,18 +43,16 @@ func init() {
 	})
 }
 
-func NewLogsAddon(config *rest.Config, httpClient *http.Client, out *OutputDirectory, opts *Options, q Queuer) (Addon, error) {
-	client, err := kubernetes.NewForConfigAndClient(config, httpClient)
+func NewLogsAddon(backend AddonBackend) (Addon, error) {
+	client, err := kubernetes.NewForConfigAndClient(backend.Config(), backend.HTTPClient())
 	if err != nil {
 		return nil, err
 	}
 
 	return &LogsAddon{
-		client: client,
-		output: out,
-		opts:   opts,
-		q:      q,
-		log:    opts.Log.Named(logsName),
+		AddonBackend: backend,
+		client:       client,
+		log:          backend.Options().Log.Named(logsName),
 	}, nil
 }
 
@@ -74,14 +68,14 @@ func (a *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 	for i := range containers {
 		container := containers[i]
 
-		a.q.Queue(func() error {
+		a.Queue(func() error {
 			opts := corev1.PodLogOptions{Container: container.Name}
 			a.gatherContainerLog(container, &opts)
 			return nil
 		})
 
 		if container.HasPreviousLog {
-			a.q.Queue(func() error {
+			a.Queue(func() error {
 				opts := corev1.PodLogOptions{Container: container.Name, Previous: true}
 				a.gatherContainerLog(container, &opts)
 				return nil
@@ -116,7 +110,7 @@ func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 
 	defer src.Close()
 
-	dst, err := a.output.CreateContainerLog(
+	dst, err := a.Output().CreateContainerLog(
 		container.Namespace, container.Pod, container.Name, string(which))
 	if err != nil {
 		a.log.Warnf("Cannot create \"%s/%s.log\": %s", container, which, err)
