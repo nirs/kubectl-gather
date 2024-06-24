@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -53,7 +54,8 @@ type Gatherer struct {
 	opts       *Options
 	wq         *WorkQueue
 	log        *zap.SugaredLogger
-	count      atomic.Int32
+	mutex      sync.Mutex
+	resources  map[string]struct{}
 }
 
 type resourceInfo struct {
@@ -104,6 +106,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		opts:       &opts,
 		wq:         wq,
 		log:        opts.Log,
+		resources:  make(map[string]struct{}),
 	}
 
 	addons, err := createAddons(&gatherBackend{g})
@@ -123,8 +126,8 @@ func (g *Gatherer) Gather() error {
 	return g.wq.Wait()
 }
 
-func (g *Gatherer) Count() int32 {
-	return g.count.Load()
+func (g *Gatherer) Count() int {
+	return len(g.resources)
 }
 
 func (g *Gatherer) gatherAPIResources() error {
@@ -233,7 +236,10 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 		}
 
 		r := resourceInfo{GroupVersionResource: gvr}
-		g.dumpResource(&r, ns)
+		key := g.KeyFromResource(&r, ns)
+		if g.addResource(key) {
+			g.dumpResource(&r, ns)
+		}
 
 		found = append(found, namespace)
 	}
@@ -301,26 +307,27 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 				g.log.Warnf("Cannot list %q: %s", r.Name(), err)
 				break
 			}
-
-			// If we got a full list, don't count twice what we aleady gathered.
-			count = 0
 		}
-
-		count += len(list.Items)
 
 		addon := g.addons[r.Name()]
 
 		for i := range list.Items {
 			item := &list.Items[i]
+			key := g.KeyFromResource(r, item)
 
-			err := g.dumpResource(r, item)
-			if err != nil {
-				g.log.Warnf("Cannot dump \"%s/%s\": %s", r.Name(), item.GetName(), err)
+			if !g.addResource(key) {
+				continue
+			}
+
+			count += 1
+
+			if err := g.dumpResource(r, item); err != nil {
+				g.log.Warnf("Cannot dump %q: %s", key, err)
 			}
 
 			if addon != nil {
 				if err := addon.Inspect(item); err != nil {
-					g.log.Warnf("Cannot inspect \"%s/%s\": %s", r.Name(), item.GetName(), err)
+					g.log.Warnf("Cannot inspect %q: %s", key, err)
 				}
 			}
 		}
@@ -331,7 +338,6 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 		}
 	}
 
-	g.count.Add(int32(count))
 	g.log.Debugf("Gathered %d %q in %.3f seconds", count, r.Name(), time.Since(start).Seconds())
 }
 
@@ -382,4 +388,29 @@ func (g *Gatherer) createResource(r *resourceInfo, item *unstructured.Unstructur
 	} else {
 		return g.output.CreateClusterResource(r.Name(), item.GetName())
 	}
+}
+
+func (g *Gatherer) KeyFromResource(r *resourceInfo, item *unstructured.Unstructured) string {
+	name := types.NamespacedName{Namespace: item.GetNamespace(), Name: item.GetName()}
+	return g.keyFromName(r, name)
+}
+
+func (g *Gatherer) keyFromName(r *resourceInfo, name types.NamespacedName) string {
+	if r.Namespaced {
+		return fmt.Sprintf("namespaces/%s/%s/%s", name.Namespace, r.Name(), name.Name)
+	} else {
+		return fmt.Sprintf("cluster/%s/%s", r.Name(), name.Name)
+	}
+}
+
+func (g *Gatherer) addResource(key string) bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	if _, ok := g.resources[key]; ok {
+		return false
+	}
+
+	g.resources[key] = struct{}{}
+	return true
 }
