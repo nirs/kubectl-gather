@@ -6,6 +6,8 @@ package gather
 import (
 	"net/http"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
 
@@ -31,4 +33,11 @@ func (b *gatherBackend) Output() *OutputDirectory {
 
 func (b *gatherBackend) Queue(work WorkFunc) {
 	b.g.wq.Queue(work)
+}
+
+func (b *gatherBackend) GatherResource(gvr schema.GroupVersionResource, name types.NamespacedName) {
+	b.g.wq.Queue(func() error {
+		b.g.gatherResource(gvr, name)
+		return nil
+	})
 }

@@ -366,6 +366,44 @@ func (g *Gatherer) listResources(r *resourceInfo, namespace string, opts metav1.
 	return list, nil
 }
 
+func (g *Gatherer) gatherResource(gvr schema.GroupVersionResource, name types.NamespacedName) {
+	start := time.Now()
+
+	r := resourceInfo{GroupVersionResource: gvr, Namespaced: name.Namespace != ""}
+
+	key := g.keyFromName(&r, name)
+	if !g.addResource(key) {
+		return
+	}
+
+	item, err := g.getResource(&r, name)
+	if err != nil {
+		g.log.Warnf("Cannot get %q: %s", key, err)
+		return
+	}
+
+	if err := g.dumpResource(&r, item); err != nil {
+		g.log.Warnf("Cannot dump %q: %s", key, err)
+		return
+	}
+
+	g.log.Debugf("Gathered %q in %.3f seconds", key, time.Since(start).Seconds())
+}
+
+func (g *Gatherer) getResource(r *resourceInfo, name types.NamespacedName) (*unstructured.Unstructured, error) {
+	ctx := context.TODO()
+	var opts metav1.GetOptions
+
+	if r.Namespaced {
+		return g.client.Resource(r.GroupVersionResource).
+			Namespace(name.Namespace).
+			Get(ctx, name.Name, opts)
+	} else {
+		return g.client.Resource(r.GroupVersionResource).
+			Get(ctx, name.Name, opts)
+	}
+}
+
 func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured) error {
 	dst, err := g.createResource(r, item)
 	if err != nil {
