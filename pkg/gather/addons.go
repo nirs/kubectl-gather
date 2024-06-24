@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"slices"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
 
@@ -27,6 +29,9 @@ type AddonBackend interface {
 
 	// Queue function on the work queue.
 	Queue(WorkFunc)
+
+	// GatherResource gathers the specified resource asynchronically.
+	GatherResource(schema.GroupVersionResource, types.NamespacedName)
 }
 
 type addonFunc func(AddonBackend) (Addon, error)

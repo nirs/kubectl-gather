@@ -12,7 +12,7 @@ import (
 )
 
 type result struct {
-	Count int32
+	Count int
 	Err   error
 }
 
@@ -72,7 +72,7 @@ func localGather(clusters []*clusterConfig) {
 	wg.Wait()
 	close(results)
 
-	count := int32(0)
+	count := 0
 
 	for r := range results {
 		if r.Err != nil {
