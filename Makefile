@@ -4,7 +4,7 @@
 REGISTRY ?= quay.io
 REPO ?= nirsof
 IMAGE ?= gather
-TAG ?= 0.3
+TAG ?= 0.4
 
 image := $(REGISTRY)/$(REPO)/$(IMAGE):$(TAG)
 
