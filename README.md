@@ -20,24 +20,15 @@ specific namespaces from all clusters.
 
 ## Installing
 
-You need to install using the go command. If you don't have Go
-installed, install it first. On rpm based system:
+Download the executable for your operating system and architecture and
+install in the PATH.
+
+Example for GNU/Linux on X86_64, installing in /usr/local/bin:
 
 ```
-sudo dnf install golang
-```
-
-Then install latest version of the plugin:
-
-```
-go install github.com/nirs/kubectl-gather@latest
-```
-
-The plugin is installed in `$HOME/go/bin`. Make sure this directory is
-in the PATH. If not, add this line to your `~/.bashrc`:
-
-```
-PATH="$HOME/go/bin:$PATH"
+curl -L -o kubectl-gather https://github.com/nirs/kubectl-gather/releases/download/v0.4.1/kubectl-gather-v0.4.1-linux-amd64
+sudo install kubectl-gather /usr/local/bin
+rm kubectl-gather
 ```
 
 ## Gathering everything from the current cluster
