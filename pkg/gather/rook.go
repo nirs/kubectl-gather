@@ -24,7 +24,6 @@ const (
 
 type RookAddon struct {
 	AddonBackend
-	name   string
 	client *kubernetes.Clientset
 	log    *zap.SugaredLogger
 }
