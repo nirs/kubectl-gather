@@ -236,7 +236,7 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 		}
 
 		r := resourceInfo{GroupVersionResource: gvr}
-		key := g.KeyFromResource(&r, ns)
+		key := g.keyFromResource(&r, ns)
 		if g.addResource(key) {
 			g.dumpResource(&r, ns)
 		}
@@ -313,7 +313,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 
 		for i := range list.Items {
 			item := &list.Items[i]
-			key := g.KeyFromResource(r, item)
+			key := g.keyFromResource(r, item)
 
 			if !g.addResource(key) {
 				continue
@@ -428,7 +428,7 @@ func (g *Gatherer) createResource(r *resourceInfo, item *unstructured.Unstructur
 	}
 }
 
-func (g *Gatherer) KeyFromResource(r *resourceInfo, item *unstructured.Unstructured) string {
+func (g *Gatherer) keyFromResource(r *resourceInfo, item *unstructured.Unstructured) string {
 	name := types.NamespacedName{Namespace: item.GetNamespace(), Name: item.GetName()}
 	return g.keyFromName(r, name)
 }
