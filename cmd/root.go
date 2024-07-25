@@ -94,7 +94,9 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 
 	log = createLogger(directory, verbose)
-	defer log.Sync()
+	defer func() {
+		_ = log.Sync()
+	}()
 
 	clusters, err := loadClusterConfigs(contexts, kubeconfig)
 	if err != nil {
