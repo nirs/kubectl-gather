@@ -238,7 +238,9 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 		r := resourceInfo{GroupVersionResource: gvr}
 		key := g.keyFromResource(&r, ns)
 		if g.addResource(key) {
-			g.dumpResource(&r, ns)
+			if err := g.dumpResource(&r, ns); err != nil {
+				g.log.Warnf("Cannot dump %q: %s", key, err)
+			}
 		}
 
 		found = append(found, namespace)
