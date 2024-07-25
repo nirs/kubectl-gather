@@ -55,8 +55,7 @@ func (d *RemoteDirectory) Gather(src string, dst string) error {
 	d.log.Debugf("Starting local tar: %s", localTar)
 	err = localTar.Start()
 	if err != nil {
-		remoteTar.Process.Kill()
-		remoteTar.Wait()
+		d.silentTerminate(remoteTar)
 		return err
 	}
 
@@ -117,6 +116,16 @@ func (d *RemoteDirectory) localTarCommand(dst string, strip int) *exec.Cmd {
 	}
 
 	return exec.Command("tar", args...)
+}
+
+func (d *RemoteDirectory) silentTerminate(cmd *exec.Cmd) {
+	if err := cmd.Process.Kill(); err != nil {
+		d.log.Warnf("Cannot kill command %v: %s", cmd, err)
+		return
+	}
+
+	// Command was terminated by signal 9.
+	_ = cmd.Wait()
 }
 
 func (d *RemoteDirectory) pathComponents(s string) int {
