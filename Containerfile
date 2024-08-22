@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: The kubectl-gather authors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM docker.io/library/golang:1.21 as builder
+FROM docker.io/library/golang:1.23 as builder
 
 WORKDIR /build
 
