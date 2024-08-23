@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: The kubectl-gather authors
+# SPDX-License-Identifier: Apache-2.0
+exec kubectl gather __complete "$@"
