@@ -31,6 +31,21 @@ sudo install kubectl-gather /usr/local/bin
 rm kubectl-gather
 ```
 
+## Shell completion
+
+To enable shell completion install the
+[kubectl_complete-gather](kubectl_complete-gather) script in the PATH.
+
+```
+curl -L -O https://raw.githubusercontent.com/nirs/kubectl-gather/main/kubectl_complete-gather
+sudo install kubectl_complete-gather /usr/local/bin
+rm kubectl_complete-gather
+```
+
+> [!NOTE]
+> To enable shell completion when running as an `oc` plugin, the name of
+> the completion script must be `oc_complete-gather`.
+
 ## Gathering everything from the current cluster
 
 The simplest way is to gather everything from the current cluster named
