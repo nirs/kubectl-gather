@@ -12,9 +12,6 @@ permissions:
     contents: write
     packages: write
 
-env:
-  CGO_ENABLED: "0"
-
 jobs:
   release-matrix:
     name: Release binaries
@@ -35,3 +32,4 @@ jobs:
         goarch: ${{ matrix.goarch }}
         md5sum: FALSE
         compress_assets: OFF
+        build_command: make
