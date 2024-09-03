@@ -14,7 +14,9 @@ image := $(REGISTRY)/$(REPO)/$(IMAGE):$(VERSION)
 #  -w	disable DWARF generation
 #  -X 	definition
 #    	add string value definition of the form importpath.name=value
-ldflags := -s -w -X '$(package).Version=$(VERSION)'
+ldflags := -s -w \
+	-X '$(package).Version=$(VERSION)' \
+	-X '$(package).Image=$(image)'
 
 .PHONY: all kubectl-gather
 

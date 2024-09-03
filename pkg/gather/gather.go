@@ -34,6 +34,7 @@ const listResourcesLimit = 100
 
 // Replaced during build with actual values.
 var Version = "latest"
+var Image = "quay.io/nirsof/gather:latest"
 
 type Options struct {
 	Kubeconfig string

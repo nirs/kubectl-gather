@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-)
 
-const remoteDefaultImage = "quay.io/nirsof/gather:0.5.1"
+	"github.com/nirs/kubectl-gather/pkg/gather"
+)
 
 func remoteGather(clusters []*clusterConfig) {
 	start := time.Now()
@@ -87,7 +87,7 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 	args := []string{
 		"adm",
 		"must-gather",
-		"--image=" + remoteDefaultImage,
+		"--image=" + gather.Image,
 		"--context=" + context,
 		"--dest-dir=" + directory,
 	}
