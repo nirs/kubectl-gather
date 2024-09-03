@@ -6,6 +6,7 @@
 base="/must-gather"
 
 mkdir -p "$base"
-printf "gather\n0.1.0\n" > "$base/version"
 
-/usr/bin/kubectl-gather --directory "$base" "$@"
+printf "gather\n$(kubectl-gather --version)\n" > "$base/version"
+
+kubectl-gather --directory "$base" "$@"
