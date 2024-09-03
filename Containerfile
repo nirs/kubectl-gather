@@ -14,10 +14,11 @@ RUN go mod download
 COPY cmd cmd
 COPY pkg pkg
 COPY main.go main.go
+ARG ldflags
 
-# Disable CGO to avoid dependencies on libc. Built image can be built on latest
-# Fedora and run on old RHEL.
-RUN CGO_ENABLED=0 go build
+ # Disable CGO to avoid dependencies on libc. Built image can be built on latest
+ # Fedora and run on old RHEL.
+RUN CGO_ENABLED=0 go build -ldflags="${ldflags}"
 
 FROM docker.io/library/alpine:latest
 
