@@ -18,7 +18,7 @@ ldflags := -s -w
 all: kubectl-gather
 
 container:
-	podman build -t $(image) .
+	podman build --tag $(image) --build-arg ldflags="$(ldflags)" .
 
 container-push: container
 	podman push $(image)
