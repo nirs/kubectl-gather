@@ -51,6 +51,7 @@ var example = `  # Gather data from all namespaces in current context in my-kube
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
 	Short:   "Gather data from clusters",
+	Version: gather.Version,
 	Example: example,
 	Annotations: map[string]string{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
@@ -86,6 +87,9 @@ func init() {
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
+
+	// Use plain, machine friendly version string.
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
 }
 
 func runGather(cmd *cobra.Command, args []string) {

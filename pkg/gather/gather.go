@@ -32,6 +32,9 @@ import (
 // TODO: Needs more testing to find the optimal value.
 const listResourcesLimit = 100
 
+// Replaced during build with actual values.
+var Version = "latest"
+
 type Options struct {
 	Kubeconfig string
 	Context    string
