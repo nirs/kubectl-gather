@@ -18,10 +18,14 @@ ldflags := -s -w
 all: kubectl-gather
 
 container:
-	podman build --tag $(image) --build-arg ldflags="$(ldflags)" .
+	podman build \
+		--platform=linux/amd64,linux/arm64 \
+		--manifest $(image) \
+		--build-arg ldflags="$(ldflags)" \
+		.
 
 container-push: container
-	podman push $(image)
+	podman manifest push --all $(image)
 
 kubectl-gather:
 	CGO_ENABLED=0 go build -ldflags="$(ldflags)"

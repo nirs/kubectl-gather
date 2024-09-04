@@ -56,10 +56,10 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Setup podman
+      - name: Setup multi-arch podman
         run: |
           sudo apt update
-          sudo apt install -y podman
+          sudo apt install -y qemu-user-static podman
           podman version
       - name: Make container
         run: make container
