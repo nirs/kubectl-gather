@@ -57,6 +57,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Create build tag
+        run: git tag latest
       - name: Setup multi-arch podman
         run: |
           sudo apt update
