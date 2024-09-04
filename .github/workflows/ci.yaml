@@ -5,8 +5,10 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 env:
   CGO_ENABLED: "0"
