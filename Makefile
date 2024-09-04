@@ -4,10 +4,14 @@
 REGISTRY ?= quay.io
 REPO ?= nirsof
 IMAGE ?= gather
-VERSION ?= 0.6.0-dev
 
 package := github.com/nirs/kubectl-gather/pkg/gather
-image := $(REGISTRY)/$(REPO)/$(IMAGE):$(VERSION)
+
+# 0.5.1 when building from tag (release)
+# 0.5.1-1-gcf79160 when building without tag (development)
+version := $(shell git describe --tags | sed -e 's/^v//')
+
+image := $(REGISTRY)/$(REPO)/$(IMAGE):$(version)
 
 # % go build -ldflags="-help"
 #  -s	disable symbol table
@@ -15,7 +19,7 @@ image := $(REGISTRY)/$(REPO)/$(IMAGE):$(VERSION)
 #  -X 	definition
 #    	add string value definition of the form importpath.name=value
 ldflags := -s -w \
-	-X '$(package).Version=$(VERSION)' \
+	-X '$(package).Version=$(version)' \
 	-X '$(package).Image=$(image)'
 
 .PHONY: all kubectl-gather
