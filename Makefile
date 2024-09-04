@@ -26,10 +26,15 @@ ldflags := -s -w \
 
 all: kubectl-gather
 
-container:
+container: container-amd64 container-arm64
+	podman manifest create --amend $(image)
+	podman manifest add $(image) $(image)-amd64
+	podman manifest add $(image) $(image)-arm64
+
+container-%:
 	podman build \
-		--platform=linux/amd64,linux/arm64 \
-		--manifest $(image) \
+		--platform=linux/$* \
+		--tag $(image)-$* \
 		--build-arg ldflags="$(ldflags)" \
 		.
 
