@@ -10,9 +10,6 @@ on:
     branches:
       - main
 
-env:
-  CGO_ENABLED: "0"
-
 jobs:
 
   lint:
@@ -44,13 +41,15 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Create build tag
+        run: git tag latest
       - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false
       - name: Build binary
-        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build
+        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} make
 
   container:
     name: Build container
