@@ -49,3 +49,17 @@ jobs:
           cache: false
       - name: Build binary
         run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build
+
+  container:
+    name: Build container
+    runs-on: ubuntu-24.04  # for recent enough podman
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup podman
+        run: |
+          sudo apt update
+          sudo apt install -y podman
+          podman version
+      - name: Make container
+        run: make container
