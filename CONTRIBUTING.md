@@ -107,7 +107,8 @@ gather.local
 
 ## Build and push a container image
 
-Build and push a container image to your private quay.io repo:
+Build and push a multi-arch container image to your private quay.io
+repo:
 
 ```console
 make container REPO=my-quay-user
@@ -116,7 +117,6 @@ make container-push
 
 > [!IMPORTANT]
 > - Make your repo public to used it for gathering.
-> - Image built in arm64 machine can be used only on arm64 cluster.
 
 ## Testing remote gather
 
