@@ -23,10 +23,15 @@ specific namespaces from all clusters.
 Download the executable for your operating system and architecture and
 install in the PATH.
 
-Example for GNU/Linux on X86_64, installing in /usr/local/bin:
+To install the latest version on Linux and macOS, run:
 
 ```
-curl -L -o kubectl-gather https://github.com/nirs/kubectl-gather/releases/download/v0.5.1/kubectl-gather-v0.5.1-linux-amd64
+tag="$(curl -fsSL https://api.github.com/repos/nirs/kubectl-gather/releases/latest | jq -r .tag_name)"
+os="$(uname | tr '[:upper:]' '[:lower:]')"
+machine="$(uname -m)"
+if [ "$machine" = "aarch64" ]; then machine="arm64"; fi
+if [ "$machine" = "x86_64" ]; then machine="amd64"; fi
+curl -L -o kubectl-gather https://github.com/nirs/kubectl-gather/releases/download/$tag/kubectl-gather-$tag-$os-$machine
 sudo install kubectl-gather /usr/local/bin
 rm kubectl-gather
 ```
