@@ -44,7 +44,7 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   # "gather.remote/". Requires the "oc" command.
   kubectl gather --contexts dr1,dr2,hub --remote --directory gather.remote
 
-  # Enable only the "logs" addon, gathering all reosurces and pod logs. Use
+  # Enable only the "logs" addon, gathering all resources and pod logs. Use
   # --addons= to disable all addons.
   kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs`
 
