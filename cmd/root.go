@@ -26,6 +26,7 @@ var namespaces []string
 var addons []string
 var remote bool
 var verbose bool
+var logFormat string
 var log *zap.SugaredLogger
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
@@ -87,6 +88,7 @@ func init() {
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
+	rootCmd.Flags().StringVar(&logFormat, "log-format", "text", "Set the logging format [text, json]")
 
 	// Use plain, machine friendly version string.
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
@@ -97,7 +99,7 @@ func runGather(cmd *cobra.Command, args []string) {
 		directory = defaultGatherDirectory()
 	}
 
-	log = createLogger(directory, verbose)
+	log = createLogger(directory, verbose, logFormat)
 	defer func() {
 		_ = log.Sync()
 	}()
@@ -130,7 +132,41 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 }
 
-func createLogger(directory string, verbose bool) *zap.SugaredLogger {
+func createLogger(directory string, verbose bool, format string) *zap.SugaredLogger {
+	consoleConfig := zap.NewProductionEncoderConfig()
+	logfileConfig := zap.NewProductionEncoderConfig()
+
+	// Use formatted timestamps instead of seconds since epoch to make it easier
+	// to related to other logs.
+	consoleConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	logfileConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	// Use UPPERCASE log levels to make it easier to read.
+	consoleConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	logfileConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	var consoleEncoder zapcore.Encoder
+	var logfileEncoder zapcore.Encoder
+
+	switch format {
+	case "text":
+		// Caller and stacktraces are useless noise in the console text logs,
+		// but may be helpful in json format when the logs are consumed by
+		// another program.
+		consoleConfig.CallerKey = zapcore.OmitKey
+		consoleConfig.StacktraceKey = zapcore.OmitKey
+		consoleEncoder = zapcore.NewConsoleEncoder(consoleConfig)
+		// In the log file caller and stacktraces are nice to have.
+		logfileEncoder = zapcore.NewConsoleEncoder(logfileConfig)
+	case "json":
+		// When using json logs we want all possible info, so a program can
+		// consume what it needs.
+		consoleEncoder = zapcore.NewJSONEncoder(consoleConfig)
+		logfileEncoder = zapcore.NewJSONEncoder(logfileConfig)
+	default:
+		stdlog.Fatalf("Invalid log-format: %q", format)
+	}
+
 	if err := os.MkdirAll(directory, 0750); err != nil {
 		stdlog.Fatalf("Cannot create directory: %s", err)
 	}
@@ -140,18 +176,14 @@ func createLogger(directory string, verbose bool) *zap.SugaredLogger {
 		stdlog.Fatalf("Cannot create log file: %s", err)
 	}
 
-	config := zap.NewDevelopmentEncoderConfig()
-	config.CallerKey = ""
-	encoder := zapcore.NewConsoleEncoder(config)
-
 	consoleLevel := zapcore.InfoLevel
 	if verbose {
 		consoleLevel = zapcore.DebugLevel
 	}
 
 	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.Lock(logfile), zapcore.DebugLevel),
-		zapcore.NewCore(encoder, zapcore.Lock(os.Stderr), consoleLevel),
+		zapcore.NewCore(logfileEncoder, zapcore.Lock(logfile), zapcore.DebugLevel),
+		zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stderr), consoleLevel),
 	)
 
 	return zap.New(core).Named("gather").Sugar()

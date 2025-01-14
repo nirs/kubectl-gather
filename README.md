@@ -484,6 +484,31 @@ $ du -sh gather.*
 8.8M	gather.resources
 ```
 
+## Integrating with other programs
+
+When running the *kubectl gather* from another program you may want to
+use JSON logs to extract certain fileds from the gather logs.
+
+Example: extracting the "msg" field from gather JSON logs:
+
+```
+% kubectl gather --kubeconfig e2e/clusters.yaml \
+                 --contexts kind-c1,kind-c2 \
+                 --log-format json 2>&1 | jq -r .msg
+Using kubeconfig "e2e/clusters.yaml"
+Gathering from all namespaces
+Using all addons
+Storing data in "gather.20250114190449"
+Gathering from cluster "kind-c1"
+Gathering from cluster "kind-c2"
+Gathered 321 resources from cluster "kind-c2" in 0.137 seconds
+Gathered 338 resources from cluster "kind-c1" in 0.140 seconds
+Gathered 659 resources from 2 clusters in 0.140 seconds
+```
+
+To extract also debug level logs you can use the `gather.log` file from
+the gather directory.
+
 ## Similar projects
 
 - [must-gather](https://github.com/openshift/must-gather) - similar tool
