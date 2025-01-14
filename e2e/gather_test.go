@@ -23,3 +23,17 @@ func TestGather(t *testing.T) {
 	}
 	// XXX verify gathered data.
 }
+
+func TestJSONLogs(t *testing.T) {
+	cmd := exec.Command(
+		executable,
+		"--contexts", strings.Join(clusters.Names(), ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--directory", "test-json-logs.out",
+		"--log-format", "json",
+	)
+	if err := commands.LogStderr(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+	// XXX verify gathered data.
+}
