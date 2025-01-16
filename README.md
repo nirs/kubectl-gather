@@ -1,5 +1,7 @@
 # kubectl-gather
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/nirs/kubectl-gather.svg)](https://pkg.go.dev/github.com/nirs/kubectl-gather)
+
 This is a kubectl plugin for gathering data about your cluster that may
 help to debug issues.
 
