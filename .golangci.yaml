@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: The kubectl-gather authors
+# SPDX-License-Identifier: Apache-2.0
+
+run:
+  deadline: 5m
+
+linters:
+  enable:
+    - errcheck
+    - goconst
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - nolintlint
+    - staticcheck
+    - unused
+    # TODO: enable after fixing issues
+    #- gocritic
+    #- gosec
+    #- misspell
+    #- stylecheck
+    #- unconvert
+  fast: false

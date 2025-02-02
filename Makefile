@@ -26,6 +26,10 @@ ldflags := -s -w \
 
 all: kubectl-gather
 
+lint:
+	golangci-lint run ./...
+	cd e2e && golangci-lint run ./...
+
 container:
 	podman build \
 		--platform=linux/amd64,linux/arm64 \
