@@ -100,7 +100,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	}
 
 	// TODO: make configurable
-	wq := NewWorkQueue(6, 500)
+	wq := NewWorkQueue(6, 2000)
 
 	g := &Gatherer{
 		config:     config,
