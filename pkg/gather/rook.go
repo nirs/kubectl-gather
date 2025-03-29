@@ -52,10 +52,7 @@ func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 	namespace := cephcluster.GetNamespace()
 	a.log.Debugf("Inspecting cephcluster \"%s/%s\"", namespace, cephcluster.GetName())
 
-	a.Queue(func() error {
-		a.gatherCommands(namespace)
-		return nil
-	})
+	a.gatherCommands(namespace)
 
 	if a.logCollectorEnabled(cephcluster) {
 		dataDir, err := a.dataDirHostPath(cephcluster)
@@ -64,10 +61,7 @@ func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
 			return nil
 		}
 
-		a.Queue(func() error {
-			a.gatherLogs(namespace, dataDir)
-			return nil
-		})
+		a.gatherLogs(namespace, dataDir)
 	}
 
 	return nil
@@ -99,7 +93,10 @@ func (a *RookAddon) gatherCommands(namespace string) {
 		return nil
 	})
 
-	a.gatherCommand(rc, "ceph", "status")
+	a.Queue(func() error {
+		a.gatherCommand(rc, "ceph", "status")
+		return nil
+	})
 }
 
 func (a *RookAddon) gatherCommand(rc *RemoteCommand, command ...string) {

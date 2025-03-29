@@ -12,7 +12,8 @@ import (
 )
 
 type gatherBackend struct {
-	g *Gatherer
+	g  *Gatherer
+	wq *WorkQueue
 }
 
 func (b *gatherBackend) Config() *rest.Config {
@@ -32,12 +33,9 @@ func (b *gatherBackend) Output() *OutputDirectory {
 }
 
 func (b *gatherBackend) Queue(work WorkFunc) {
-	b.g.wq.Queue(work)
+	b.wq.Queue(work)
 }
 
 func (b *gatherBackend) GatherResource(gvr schema.GroupVersionResource, name types.NamespacedName) {
-	b.g.wq.Queue(func() error {
-		b.g.gatherResource(gvr, name)
-		return nil
-	})
+	b.g.gatherResource(gvr, name)
 }

@@ -31,6 +31,9 @@ import (
 // time and memory usage. TODO: Needs more testing to find the optimal value.
 const listResourcesLimit = 100
 
+// Number of workers serving a work queue.
+const workQueueSize = 6
+
 // Replaced during build with actual values.
 var Version = "latest"
 var Image = "quay.io/nirsof/gather:latest"
@@ -49,16 +52,17 @@ type Addon interface {
 }
 
 type Gatherer struct {
-	config     *rest.Config
-	httpClient *http.Client
-	client     *dynamic.DynamicClient
-	addons     map[string]Addon
-	output     OutputDirectory
-	opts       *Options
-	wq         *WorkQueue
-	log        *zap.SugaredLogger
-	mutex      sync.Mutex
-	resources  map[string]struct{}
+	config       *rest.Config
+	httpClient   *http.Client
+	client       *dynamic.DynamicClient
+	addons       map[string]Addon
+	output       OutputDirectory
+	opts         *Options
+	gatherQueue  *WorkQueue
+	inspectQueue *WorkQueue
+	log          *zap.SugaredLogger
+	mutex        sync.Mutex
+	resources    map[string]struct{}
 }
 
 type resourceInfo struct {
@@ -98,21 +102,24 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		return nil, err
 	}
 
-	// TODO: make configurable
-	wq := NewWorkQueue(6, 2000)
-
 	g := &Gatherer{
-		config:     config,
-		httpClient: httpClient,
-		client:     client,
-		output:     OutputDirectory{base: directory},
-		opts:       &opts,
-		wq:         wq,
-		log:        opts.Log,
-		resources:  make(map[string]struct{}),
+		config:       config,
+		httpClient:   httpClient,
+		client:       client,
+		output:       OutputDirectory{base: directory},
+		opts:         &opts,
+		gatherQueue:  NewWorkQueue(workQueueSize),
+		inspectQueue: NewWorkQueue(workQueueSize),
+		log:          opts.Log,
+		resources:    make(map[string]struct{}),
 	}
 
-	addons, err := createAddons(&gatherBackend{g})
+	backend := &gatherBackend{
+		g:  g,
+		wq: g.inspectQueue,
+	}
+
+	addons, err := createAddons(backend)
 	if err != nil {
 		return nil, err
 	}
@@ -122,18 +129,48 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 }
 
 func (g *Gatherer) Gather() error {
-	g.wq.Start()
-	g.wq.Queue(func() error {
-		return g.gatherAPIResources()
-	})
-	return g.wq.Wait()
+	start := time.Now()
+	g.gatherQueue.Start()
+	g.inspectQueue.Start()
+
+	defer func() {
+		// Safe close even if some work was queued in prepare before it failed.
+		g.gatherQueue.Close()
+		_ = g.gatherQueue.Wait()
+		g.inspectQueue.Close()
+		_ = g.inspectQueue.Wait()
+	}()
+
+	// Start the prepare step, looking up namespaces and API resources and
+	// queuing work on the gather workqueue.
+	if err := g.prepare(); err != nil {
+		return err
+	}
+	g.log.Debugf("Prepare step finished in %.2f seconds", time.Since(start).Seconds())
+
+	// No more work can be queued on the gather queue so we can close it.
+	g.gatherQueue.Close()
+	gatherErr := g.gatherQueue.Wait()
+	g.log.Debugf("Gather step finished in %.2f seconds", time.Since(start).Seconds())
+
+	// No more work can be queued on the inspect queue so we can close it.
+	g.inspectQueue.Close()
+	inspectErr := g.inspectQueue.Wait()
+	g.log.Debugf("Inspect step finished in %.2f seconds", time.Since(start).Seconds())
+
+	// All work completed. Report fatal errors to caller.
+	if gatherErr != nil || inspectErr != nil {
+		return fmt.Errorf("failed to gather (gather: %w, inspect: %w)", gatherErr, inspectErr)
+	}
+
+	return nil
 }
 
 func (g *Gatherer) Count() int {
 	return len(g.resources)
 }
 
-func (g *Gatherer) gatherAPIResources() error {
+func (g *Gatherer) prepare() error {
 	var namespaces []string
 
 	if len(g.opts.Namespaces) > 0 {
@@ -167,7 +204,7 @@ func (g *Gatherer) gatherAPIResources() error {
 		r := &resources[i]
 		for j := range namespaces {
 			namespace := namespaces[j]
-			g.wq.Queue(func() error {
+			g.gatherQueue.Queue(func() error {
 				g.gatherResources(r, namespace)
 				return nil
 			})
