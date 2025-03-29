@@ -26,10 +26,9 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// Based on stats from OpenShift ODF cluster, this value keeps payload size
-// under 4 MiB in most cases. Higher values decrease the number of requests and
-// increase CPU time and memory usage.
-// TODO: Needs more testing to find the optimal value.
+// Based on stats from OCP cluster, this value keeps payload size under 4 MiB in
+// most cases. Higher values decrease the number of requests and increase CPU
+// time and memory usage. TODO: Needs more testing to find the optimal value.
 const listResourcesLimit = 100
 
 // Replaced during build with actual values.
@@ -67,9 +66,9 @@ type resourceInfo struct {
 	Namespaced bool
 }
 
-// Name returns the full name of the reosurce, used as the directory name in the
+// Name returns the full name of the resource, used as the directory name in the
 // gather directory. Resources with an empty group are gathered in the cluster
-// or namespace direcotry. Reosurces with non-empty group are gathered in a
+// or namespace directory. Resources with non-empty group are gathered in a
 // group directory.
 func (r *resourceInfo) Name() string {
 	if r.Group == "" {

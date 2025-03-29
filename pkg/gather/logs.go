@@ -61,7 +61,7 @@ func (a *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
 
 	containers, err := a.listContainers(pod)
 	if err != nil {
-		return fmt.Errorf("cannnot find containers in pod \"%s/%s\": %s",
+		return fmt.Errorf("cannot find containers in pod \"%s/%s\": %s",
 			pod.GetNamespace(), pod.GetName(), err)
 	}
 
@@ -101,7 +101,7 @@ func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 		// Getting the log is possible only if a container is running, but
 		// checking the container state before the call is racy. We get a
 		// BadRequest error like: "container ... in pod ... is waiting to start:
-		// PodInitializing" so there is no way to detect the actul problem.
+		// PodInitializing" so there is no way to detect the actual problem.
 		// Since this is expected situation, and getting logs is best effort, we
 		// log this in debug level.
 		a.log.Debugf("Cannot get log for \"%s/%s\": %v", container, which, err)

@@ -84,7 +84,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	commands, err := a.Output().CreateAddonDir(rookName, "commands")
 	if err != nil {
-		a.log.Warnf("Cannot create commnads directory: %s", err)
+		a.log.Warnf("Cannot create commands directory: %s", err)
 		return
 	}
 

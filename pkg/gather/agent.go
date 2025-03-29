@@ -51,8 +51,8 @@ func NewAgentPod(name string, client *kubernetes.Clientset, log *zap.SugaredLogg
 
 					// The agent should stop automatically so if we fail to
 					// delete it, so we don't waste resources on the target
-					// cluster. We trap SIGTERM so it terminates immediatly when
-					// deleted.
+					// cluster. We trap SIGTERM so it terminates immediately
+					// when deleted.
 					Command: []string{"sh", "-c", "trap exit TERM; sleep 900"},
 
 					SecurityContext: &corev1.SecurityContext{
