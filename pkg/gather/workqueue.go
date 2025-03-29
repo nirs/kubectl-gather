@@ -17,29 +17,30 @@ type WorkQueue struct {
 	wg      sync.WaitGroup
 	mutex   sync.Mutex
 	err     error
+	closed  bool
 }
 
-func NewWorkQueue(workers int, size int) *WorkQueue {
+func NewWorkQueue(workers int) *WorkQueue {
 	return &WorkQueue{
-		queue:   make(chan WorkFunc, size),
+		queue:   make(chan WorkFunc),
 		workers: workers,
 	}
 }
 
 func (q *WorkQueue) Queue(work WorkFunc) {
-	q.wg.Add(1)
 	q.queue <- work
 }
 
 func (q *WorkQueue) Start() {
 	for i := 0; i < q.workers; i++ {
+		q.wg.Add(1)
 		go func() {
+			defer q.wg.Done()
 			for work := range q.queue {
 				err := work()
 				if err != nil {
 					q.setFirstError(err)
 				}
-				q.wg.Done()
 			}
 		}()
 	}
@@ -48,6 +49,16 @@ func (q *WorkQueue) Start() {
 func (q *WorkQueue) Wait() error {
 	q.wg.Wait()
 	return q.firstError()
+}
+
+func (q *WorkQueue) Close() {
+	// Closing closed channel panics, so we must call it exactly once.
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	if !q.closed {
+		close(q.queue)
+		q.closed = true
+	}
 }
 
 func (q *WorkQueue) firstError() error {
