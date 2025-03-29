@@ -24,8 +24,8 @@ type RemoteCommand struct {
 
 var specialCharacters *regexp.Regexp
 
-func NewRemoteCommand(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger, directroy string) *RemoteCommand {
-	return &RemoteCommand{pod: pod, opts: opts, log: log, directory: directroy}
+func NewRemoteCommand(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger, directory string) *RemoteCommand {
+	return &RemoteCommand{pod: pod, opts: opts, log: log, directory: directory}
 }
 
 func (c *RemoteCommand) Gather(command ...string) error {
