@@ -14,7 +14,7 @@ permissions:
   packages: write
 
 jobs:
-  release-matrix:
+  release-binaries:
     name: Release binaries
     runs-on: ubuntu-latest
     strategy:
@@ -34,3 +34,22 @@ jobs:
         md5sum: FALSE
         compress_assets: OFF
         build_command: make
+  release-container:
+    name: Release container
+    runs-on: ubuntu-24.04  # for recent enough podman
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup multi-arch podman
+        run: |
+          sudo apt update
+          sudo apt install -y qemu-user-static podman
+          podman version
+      - name: Login to quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT }}
+          password: ${{ secrets.QUAY_TOKEN }}
+      - name: Build and push container
+        run: make container-push
