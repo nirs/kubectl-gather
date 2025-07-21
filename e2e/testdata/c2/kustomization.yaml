@@ -1,0 +1,14 @@
+---
+resources:
+  - ../base
+namePrefix: c2-
+namespace: test-c2
+patches:
+  # Patch the mount point to match the name prefix.
+  - target:
+      kind: PersistentVolume
+      name: pv1
+    patch: |-
+      - op: replace
+        path: /spec/hostPath/path
+        value: /mnt/c2-pv1

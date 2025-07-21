@@ -1,0 +1,14 @@
+---
+resources:
+  - ../base
+namePrefix: common-
+namespace: test-common
+patches:
+  # Patch the mount point to match the name prefix.
+  - target:
+      kind: PersistentVolume
+      name: pv1
+    patch: |-
+      - op: replace
+        path: /spec/hostPath/path
+        value: /mnt/common-pv1
