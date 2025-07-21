@@ -7,9 +7,7 @@ clusters: e2e
 test: clusters
 	go test . -v -count=1
 
-clean:
+clean: e2e
 	./e2e delete
-	rm -rf test-*.out
-	rm -f kind-*.yaml
-	rm -f clusters.yaml
+	rm -rf out
 	rm -f e2e

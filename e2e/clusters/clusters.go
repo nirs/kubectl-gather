@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -12,7 +13,10 @@ import (
 	"github.com/nirs/kubectl-gather/e2e/commands"
 )
 
-const kubeconfig = "clusters.yaml"
+const (
+	outdir     = "out"
+	kubeconfig = "kubeconfig.yaml"
+)
 
 var names = []string{"kind-c1", "kind-c2"}
 
@@ -21,11 +25,14 @@ func Names() []string {
 }
 
 func Kubeconfig() string {
-	return kubeconfig
+	return filepath.Join(outdir, kubeconfig)
 }
 
 func Create() error {
 	log.Print("Creating clusters")
+	if err := os.MkdirAll(outdir, 0o700); err != nil {
+		return err
+	}
 	if err := execute(createCluster, names); err != nil {
 		return err
 	}
@@ -41,7 +48,7 @@ func Delete() error {
 	if err := execute(deleteCluster, names); err != nil {
 		return err
 	}
-	_ = os.Remove(kubeconfig)
+	_ = os.Remove(Kubeconfig())
 	log.Print("Clusters deleted")
 	return nil
 }
@@ -80,7 +87,7 @@ func createCluster(name string) error {
 	cmd := exec.Command(
 		"kind", "create", "cluster",
 		"--name", kindName(name),
-		"--kubeconfig", name+".yaml",
+		"--kubeconfig", clusterKubeconfig(name),
 		"--wait", "60s",
 	)
 	return commands.LogStderr(cmd)
@@ -88,7 +95,7 @@ func createCluster(name string) error {
 
 func deleteCluster(name string) error {
 	log.Printf("Deleting cluster %q", name)
-	config := name + ".yaml"
+	config := clusterKubeconfig(name)
 	cmd := exec.Command(
 		"kind", "delete", "cluster",
 		"--name", kindName(name),
@@ -102,10 +109,10 @@ func deleteCluster(name string) error {
 }
 
 func createKubeconfig() error {
-	log.Printf("Creating kubconfigs %q", kubeconfig)
+	log.Printf("Creating kubconfigs %q", Kubeconfig())
 	var configs []string
 	for _, name := range names {
-		configs = append(configs, name+".yaml")
+		configs = append(configs, clusterKubeconfig(name))
 	}
 	cmd := exec.Command("kubectl", "config", "view", "--flatten")
 	cmd.Env = append(os.Environ(), "KUBECONFIG="+strings.Join(configs, ":"))
@@ -114,7 +121,7 @@ func createKubeconfig() error {
 	if err != nil {
 		return fmt.Errorf("Failed to merge configs: %s: %s", err, commands.Stderr(err))
 	}
-	return os.WriteFile(kubeconfig, data, 0640)
+	return os.WriteFile(Kubeconfig(), data, 0640)
 }
 
 func clusterExists(name string) (bool, error) {
@@ -131,4 +138,8 @@ func clusterExists(name string) (bool, error) {
 
 func kindName(name string) string {
 	return strings.TrimPrefix(name, "kind-")
+}
+
+func clusterKubeconfig(name string) string {
+	return filepath.Join(outdir, name+".yaml")
 }
