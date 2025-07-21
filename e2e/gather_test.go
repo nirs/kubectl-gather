@@ -16,7 +16,7 @@ func TestGather(t *testing.T) {
 		executable,
 		"--contexts", strings.Join(clusters.Names(), ","),
 		"--kubeconfig", clusters.Kubeconfig(),
-		"--directory", "test-gather.out",
+		"--directory", "out/test-gather",
 	)
 	if err := commands.LogStderr(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -29,7 +29,7 @@ func TestJSONLogs(t *testing.T) {
 		executable,
 		"--contexts", strings.Join(clusters.Names(), ","),
 		"--kubeconfig", clusters.Kubeconfig(),
-		"--directory", "test-json-logs.out",
+		"--directory", "out/test-json-logs",
 		"--log-format", "json",
 	)
 	if err := commands.LogStderr(cmd); err != nil {
