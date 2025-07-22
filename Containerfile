@@ -18,9 +18,12 @@ COPY cmd cmd
 COPY pkg pkg
 COPY main.go main.go
 
- # Disable CGO to avoid dependencies on libc. Built image can be built on latest
- # Fedora and run on old RHEL.
-RUN CGO_ENABLED=0 go build -ldflags="${ldflags}"
+# Build env variables:
+# - CGO_ENABLED=0: Disable CGO to avoid dependencies on libc. Built image can
+#   be built on latest Fedora and run on old RHEL.
+# - GOTOOLCHAIN=auto: The go command downloads newer toolchain as needed.
+#   https://go.dev/doc/toolchain#download
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -ldflags="${ldflags}"
 
 FROM docker.io/library/alpine:latest
 
