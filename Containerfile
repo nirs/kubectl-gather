@@ -1,7 +1,10 @@
 # SPDX-FileCopyrightText: The kubectl-gather authors
 # SPDX-License-Identifier: Apache-2.0
 
-FROM docker.io/library/golang:1.23 as builder
+ARG go_version
+ARG ldflags
+
+FROM docker.io/library/golang:${go_version} as builder
 
 WORKDIR /build
 
@@ -14,7 +17,6 @@ RUN go mod download
 COPY cmd cmd
 COPY pkg pkg
 COPY main.go main.go
-ARG ldflags
 
  # Disable CGO to avoid dependencies on libc. Built image can be built on latest
  # Fedora and run on old RHEL.

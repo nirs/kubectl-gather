@@ -13,6 +13,8 @@ version := $(shell git describe --tags | sed -e 's/^v//')
 
 image := $(REGISTRY)/$(REPO)/$(IMAGE):$(version)
 
+go_version := $(shell go list -f "{{.GoVersion}}" -m)
+
 # % go build -ldflags="-help"
 #  -s	disable symbol table
 #  -w	disable DWARF generation
@@ -35,6 +37,7 @@ container:
 		--platform=linux/amd64,linux/arm64 \
 		--manifest $(image) \
 		--build-arg ldflags="$(ldflags)" \
+		--build-arg go_version="$(go_version)" \
 		.
 
 container-push: container
