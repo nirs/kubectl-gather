@@ -31,6 +31,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
+        goversion: go.mod
         md5sum: FALSE
         compress_assets: OFF
         build_command: make
