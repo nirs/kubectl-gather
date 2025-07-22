@@ -43,5 +43,10 @@ container:
 container-push: container
 	podman manifest push --all $(image)
 
+# Build env variables:
+# - CGO_ENABLED=0: Disable CGO to avoid dependencies on libc. Built image can
+#   be built on latest Fedora and run on old RHEL.
+# - GOTOOLCHAIN=auto: The go command downloads newer toolchain as needed.
+#   https://go.dev/doc/toolchain#download
 kubectl-gather:
-	CGO_ENABLED=0 go build -ldflags="$(ldflags)"
+	GO_TOOLCHAIN=auto CGO_ENABLED=0 go build -ldflags="$(ldflags)"
