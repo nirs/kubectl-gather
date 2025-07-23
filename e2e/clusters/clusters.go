@@ -14,15 +14,14 @@ import (
 )
 
 const (
+	C1 = "kind-c1"
+	C2 = "kind-c2"
+
 	outdir     = "out"
 	kubeconfig = "kubeconfig.yaml"
 )
 
-var names = []string{"kind-c1", "kind-c2"}
-
-func Names() []string {
-	return names
-}
+var Names = []string{C1, C2}
 
 func Kubeconfig() string {
 	return filepath.Join(outdir, kubeconfig)
@@ -33,7 +32,7 @@ func Create() error {
 	if err := os.MkdirAll(outdir, 0o700); err != nil {
 		return err
 	}
-	if err := execute(createCluster, names); err != nil {
+	if err := execute(createCluster, Names); err != nil {
 		return err
 	}
 	if err := createKubeconfig(); err != nil {
@@ -45,7 +44,7 @@ func Create() error {
 
 func Delete() error {
 	log.Print("Deleting clusters")
-	if err := execute(deleteCluster, names); err != nil {
+	if err := execute(deleteCluster, Names); err != nil {
 		return err
 	}
 	_ = os.Remove(Kubeconfig())
@@ -111,7 +110,7 @@ func deleteCluster(name string) error {
 func createKubeconfig() error {
 	log.Printf("Creating kubconfigs %q", Kubeconfig())
 	var configs []string
-	for _, name := range names {
+	for _, name := range Names {
 		configs = append(configs, clusterKubeconfig(name))
 	}
 	cmd := exec.Command("kubectl", "config", "view", "--flatten")

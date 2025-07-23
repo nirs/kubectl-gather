@@ -14,7 +14,7 @@ const executable = "../kubectl-gather"
 func TestGather(t *testing.T) {
 	cmd := exec.Command(
 		executable,
-		"--contexts", strings.Join(clusters.Names(), ","),
+		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", "out/test-gather",
 	)
@@ -27,7 +27,7 @@ func TestGather(t *testing.T) {
 func TestJSONLogs(t *testing.T) {
 	cmd := exec.Command(
 		executable,
-		"--contexts", strings.Join(clusters.Names(), ","),
+		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", "out/test-json-logs",
 		"--log-format", "json",
