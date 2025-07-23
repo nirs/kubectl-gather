@@ -119,7 +119,7 @@ func createKubeconfig() error {
 	log.Printf("Running %v", cmd)
 	data, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("Failed to merge configs: %s: %s", err, commands.Stderr(err))
+		return fmt.Errorf("failed to merge configs: %s: %s", err, commands.Stderr(err))
 	}
 	return os.WriteFile(Kubeconfig(), data, 0640)
 }
@@ -129,7 +129,7 @@ func clusterExists(name string) (bool, error) {
 	log.Printf("Running %v", cmd)
 	out, err := cmd.Output()
 	if err != nil {
-		return false, fmt.Errorf("Failed to get clusters: %s: %s", err, commands.Stderr(err))
+		return false, fmt.Errorf("failed to get clusters: %s: %s", err, commands.Stderr(err))
 	}
 	trimmed := strings.TrimSpace(string(out))
 	existing := strings.Split(trimmed, "\n")
