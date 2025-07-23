@@ -1,22 +1,36 @@
 # SPDX-FileCopyrightText: The kubectl-gather authors
 # SPDX-License-Identifier: Apache-2.0
-
+---
+version: "2"
 linters:
   enable:
     - errcheck
     - goconst
-    - gofmt
-    - goimports
-    - gosimple
-    - govet
-    - ineffassign
     - nolintlint
-    - staticcheck
-    - unused
     # TODO: enable after fixing issues
     #- gocritic
     #- gosec
     #- misspell
     #- stylecheck
     #- unconvert
-  fast: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
