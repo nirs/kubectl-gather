@@ -7,7 +7,8 @@ import (
 	"os/exec"
 )
 
-func LogStderr(cmd *exec.Cmd) error {
+// Run a command logging lines from stderr.
+func Run(cmd *exec.Cmd) error {
 	log.Printf("Running %v", cmd)
 	pipe, err := cmd.StderrPipe()
 	if err != nil {

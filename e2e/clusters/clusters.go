@@ -90,7 +90,7 @@ func createCluster(name string) error {
 		"--kubeconfig", clusterKubeconfig(name),
 		"--wait", "60s",
 	)
-	return commands.LogStderr(cmd)
+	return commands.Run(cmd)
 }
 
 func deleteCluster(name string) error {
@@ -101,7 +101,7 @@ func deleteCluster(name string) error {
 		"--name", kindName(name),
 		"--kubeconfig", config,
 	)
-	if err := commands.LogStderr(cmd); err != nil {
+	if err := commands.Run(cmd); err != nil {
 		return err
 	}
 	_ = os.Remove(config)
