@@ -35,6 +35,10 @@ var (
 		"cluster/persistentvolumes/common-pv1.yaml",
 	}
 
+	c1ClusterNodes = []string{
+		"cluster/nodes/c1-control-plane.yaml",
+	}
+
 	c1ClusterResources = []string{
 		"cluster/namespaces/test-c1.yaml",
 	}
@@ -54,6 +58,10 @@ var (
 
 	c1PVCResources = []string{
 		"cluster/persistentvolumes/c1-pv1.yaml",
+	}
+
+	c2ClusterNodes = []string{
+		"cluster/nodes/c2-control-plane.yaml",
 	}
 
 	c2ClusterResources = []string{
@@ -101,21 +109,25 @@ func TestGather(t *testing.T) {
 	validate.Exists(t, outputDir, clusters.Names, commonNamespacedResources)
 	validate.Exists(t, outputDir, clusters.Names, commonLogResources)
 
+	validate.Exists(t, outputDir, []string{clusters.C1}, c1ClusterNodes)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1ClusterResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1PVCResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1NamespaceResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1LogResources)
 
+	validate.Exists(t, outputDir, []string{clusters.C2}, c2ClusterNodes)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2ClusterResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2PVCResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2NamespaceResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2LogResources)
 
+	validate.Missing(t, outputDir, []string{clusters.C1}, c2ClusterNodes)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2ClusterResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2PVCResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2NamespaceResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2LogResources)
 
+	validate.Missing(t, outputDir, []string{clusters.C2}, c1ClusterNodes)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1ClusterResources)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1PVCResources)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1NamespaceResources)
@@ -143,21 +155,25 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 	validate.Exists(t, outputDir, clusters.Names, commonNamespacedResources)
 	validate.Exists(t, outputDir, clusters.Names, commonLogResources)
 
+	validate.Exists(t, outputDir, []string{clusters.C1}, c1ClusterNodes)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1ClusterResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1PVCResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1NamespaceResources)
 	validate.Exists(t, outputDir, []string{clusters.C1}, c1LogResources)
 
+	validate.Exists(t, outputDir, []string{clusters.C2}, c2ClusterNodes)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2ClusterResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2PVCResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2NamespaceResources)
 	validate.Exists(t, outputDir, []string{clusters.C2}, c2LogResources)
 
+	validate.Missing(t, outputDir, []string{clusters.C1}, c2ClusterNodes)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2ClusterResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2PVCResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2NamespaceResources)
 	validate.Missing(t, outputDir, []string{clusters.C1}, c2LogResources)
 
+	validate.Missing(t, outputDir, []string{clusters.C2}, c1ClusterNodes)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1ClusterResources)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1PVCResources)
 	validate.Missing(t, outputDir, []string{clusters.C2}, c1NamespaceResources)
