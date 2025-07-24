@@ -1,4 +1,4 @@
-package e2e_test
+package e2e
 
 import (
 	"os/exec"
@@ -10,8 +10,6 @@ import (
 	"github.com/nirs/kubectl-gather/e2e/commands"
 	"github.com/nirs/kubectl-gather/e2e/validate"
 )
-
-const executable = "../kubectl-gather"
 
 var (
 	commonClusterResources = []string{
