@@ -18,7 +18,7 @@ func NewOutputReader(path string) *OutputReader {
 	return &OutputReader{base: path}
 }
 
-// ListResoruces lists resource names in namespace.
+// ListResources lists resource names in namespace.
 func (r *OutputReader) ListResources(namespace, resource string) ([]string, error) {
 	var resourceDir string
 	if namespace == "" {
