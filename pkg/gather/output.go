@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	namespacesDir = "namespaces"
-	clusterDir    = "cluster"
-	addonsDir     = "addons"
+	namespacesDir  = "namespaces"
+	clusterDir     = "cluster"
+	addonsDir      = "addons"
+	resourceSuffix = ".yaml"
+	logSuffix      = ".log"
 )
 
 type OutputDirectory struct {
@@ -24,7 +26,7 @@ func (o *OutputDirectory) CreateContainerLog(namespace string, pod string, conta
 	if err != nil {
 		return nil, err
 	}
-	return createFile(dir, name+".log")
+	return createFile(dir, name+logSuffix)
 }
 
 func (o *OutputDirectory) CreateNamespacedResource(namespace string, resource string, name string) (io.WriteCloser, error) {
@@ -32,7 +34,7 @@ func (o *OutputDirectory) CreateNamespacedResource(namespace string, resource st
 	if err != nil {
 		return nil, err
 	}
-	return createFile(dir, name+".yaml")
+	return createFile(dir, name+resourceSuffix)
 }
 
 func (o *OutputDirectory) CreateClusterResource(resource string, name string) (io.WriteCloser, error) {
@@ -40,7 +42,7 @@ func (o *OutputDirectory) CreateClusterResource(resource string, name string) (i
 	if err != nil {
 		return nil, err
 	}
-	return createFile(dir, name+".yaml")
+	return createFile(dir, name+resourceSuffix)
 }
 
 func (o *OutputDirectory) CreateAddonDir(name string, more ...string) (string, error) {
