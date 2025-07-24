@@ -15,10 +15,10 @@ permissions:
 jobs:
   release-binaries:
     name: Release binaries
-    runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         goos: [linux, windows, darwin]
