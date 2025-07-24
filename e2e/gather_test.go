@@ -92,7 +92,7 @@ func TestGather(t *testing.T) {
 	outputDir := "out/test-gather"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", outputDir,
@@ -136,7 +136,7 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 	outputDir := "out/test-gather-empty-namespaces"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces=", "",
@@ -182,7 +182,7 @@ func TestGatherSpecificNamespaces(t *testing.T) {
 	outputDir := "out/test-gather-specific-namespaces"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1",
@@ -210,7 +210,7 @@ func TestGatherAddonsLogs(t *testing.T) {
 	outputDir := "out/test-gather-addons-logs"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
@@ -244,7 +244,7 @@ func TestGatherAddonsPVCs(t *testing.T) {
 	outputDir := "out/test-gather-addons-pvcs"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
@@ -277,7 +277,7 @@ func TestGatherAddonsEmpty(t *testing.T) {
 	outputDir := "out/test-gather-addons-empty"
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
@@ -313,7 +313,7 @@ func TestJSONLogs(t *testing.T) {
 	logPath := filepath.Join(outputDir, "gather.log")
 
 	cmd := exec.Command(
-		executable,
+		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", outputDir,

@@ -1,3 +1,3 @@
 package e2e
 
-const executable = "../kubectl-gather"
+const kubectlGather = "../kubectl-gather"
