@@ -23,6 +23,7 @@ var directory string
 var kubeconfig string
 var contexts []string
 var namespaces []string
+var clusterScope bool
 var addons []string
 var remote bool
 var verbose bool
@@ -40,6 +41,13 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   # Gather data from namespaces "my-ns" and "other-ns" in clusters "dr1", "dr2",
   # and "hub", and store it in "gather.ns/".
   kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --directory gather.ns
+
+  # Gather only cluster resources from clusters "dr1", "dr2" and "hub".
+  kubectl gather --contexts dr1,dr2,hub --namespace="" --cluster --directory gather.cluster
+
+  # Gather both cluster and namespace resources from specific namespaces "my-ns" and
+  # "other-ns" in clusters "dr1", "dr2", and "hub".
+  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --cluster --directory gather.mixed
 
   # Gather data on the remote clusters "dr1", "dr2" and "hub" and download it to
   # "gather.remote/". Requires the "oc" command.
@@ -81,6 +89,9 @@ func init() {
 		"comma separated list of contexts to gather data from")
 	rootCmd.Flags().StringSliceVarP(&namespaces, "namespaces", "n", nil,
 		"if specified, comma separated list of namespaces to gather data from")
+	rootCmd.Flags().BoolVar(&clusterScope, "cluster", false,
+		"if true, gathers also cluster scoped resources, if namespaces and "+
+			"cluster are not specified we gather all resources")
 	rootCmd.Flags().StringSliceVar(&addons, "addons", nil,
 		fmt.Sprintf("if specified, comma separated list of addons to enable (available addons: %s)",
 			availableAddons()))
@@ -109,10 +120,18 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	if err := validateOptions(cmd); err != nil {
+		log.Fatal(err)
+	}
+
 	if len(namespaces) != 0 {
 		log.Infof("Gathering from namespaces %q", namespaces)
 	} else {
 		log.Infof("Gathering from all namespaces")
+	}
+
+	if clusterScope {
+		log.Info("Gathering cluster scoped resources")
 	}
 
 	if addons != nil {
@@ -187,6 +206,19 @@ func createLogger(directory string, verbose bool, format string) *zap.SugaredLog
 	)
 
 	return zap.New(core).Named("gather").Sugar()
+}
+
+func validateOptions(cmd *cobra.Command) error {
+	if namespaces != nil && len(namespaces) == 0 && !clusterScope {
+		return fmt.Errorf("usage error: cannot specify empty --namespaces without enabling --cluster")
+	}
+
+	if namespaces == nil && !cmd.Flags().Changed("cluster") {
+		clusterScope = true
+		return nil
+	}
+
+	return nil
 }
 
 func defaultGatherDirectory() string {
