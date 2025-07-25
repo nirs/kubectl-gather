@@ -167,6 +167,40 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 	validate.Missing(t, outputDir, []string{clusters.C2}, c2LogResources)
 }
 
+func TestGatherEmptyNamespacesClusterFalse(t *testing.T) {
+	outputDir := "out/test-gather-empty-namespaces-cluster-false"
+
+	cmd := exec.Command(
+		executable,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--namespaces=", "",
+		"--cluster=false",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err == nil {
+		t.Errorf("kubectl-gather should fail with usage error, but it succeeded")
+	}
+
+	validate.Missing(t, outputDir, clusters.Names, defaultPVCResources)
+	validate.Missing(t, outputDir, clusters.Names, commonClusterResources)
+	validate.Missing(t, outputDir, clusters.Names, commonPVCResources)
+	validate.Missing(t, outputDir, clusters.Names, commonNamespacedResources)
+	validate.Missing(t, outputDir, clusters.Names, commonLogResources)
+
+	validate.Missing(t, outputDir, []string{clusters.C1}, c1ClusterNodes)
+	validate.Missing(t, outputDir, []string{clusters.C1}, c1ClusterResources)
+	validate.Missing(t, outputDir, []string{clusters.C1}, c1PVCResources)
+	validate.Missing(t, outputDir, []string{clusters.C1}, c1NamespaceResources)
+	validate.Missing(t, outputDir, []string{clusters.C1}, c1LogResources)
+
+	validate.Missing(t, outputDir, []string{clusters.C2}, c2ClusterNodes)
+	validate.Missing(t, outputDir, []string{clusters.C2}, c2ClusterResources)
+	validate.Missing(t, outputDir, []string{clusters.C2}, c2PVCResources)
+	validate.Missing(t, outputDir, []string{clusters.C2}, c2NamespaceResources)
+	validate.Missing(t, outputDir, []string{clusters.C2}, c2LogResources)
+}
+
 func TestGatherSpecificNamespaces(t *testing.T) {
 	outputDir := "out/test-gather-specific-namespaces"
 
