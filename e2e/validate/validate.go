@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
-func Exists(t *testing.T, outputDir string, clusterNames []string, resources []string) {
+func Exists(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
 	if !pathExists(t, outputDir) {
 		t.Fatalf("output directory %q does not exist", outputDir)
 	}
@@ -17,33 +18,34 @@ func Exists(t *testing.T, outputDir string, clusterNames []string, resources []s
 		if !pathExists(t, clusterDir) {
 			t.Fatalf("cluster directory %q does not exist", clusterDir)
 		}
-		for _, expectedFile := range resources {
-			resource := filepath.Join(clusterDir, expectedFile)
+		for _, pattern := range slices.Concat(resources...) {
+			resource := filepath.Join(clusterDir, pattern)
 			matches, err := filepath.Glob(resource)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if len(matches) == 0 {
-				t.Errorf("expected resource %q does not exist", resource)
+				t.Errorf("resource %q does not exist", resource)
 			}
 		}
 	}
 }
 
-func Missing(t *testing.T, outputDir string, clusterNames []string, resources []string) {
+func Missing(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
 	if !pathExists(t, outputDir) {
 		t.Fatalf("output directory %q does not exist", outputDir)
 	}
 
 	for _, cluster := range clusterNames {
-		for _, expectedFile := range resources {
-			resource := filepath.Join(outputDir, cluster, expectedFile)
+		clusterDir := filepath.Join(outputDir, cluster)
+		for _, pattern := range slices.Concat(resources...) {
+			resource := filepath.Join(clusterDir, pattern)
 			matches, err := filepath.Glob(resource)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if len(matches) > 0 {
-				t.Errorf("expected resource %q should not exist: %q", expectedFile, matches)
+				t.Errorf("resource %q should not exist: %q", resource, matches)
 			}
 		}
 	}
