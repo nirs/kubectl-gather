@@ -109,6 +109,10 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	if err := validateOptions(); err != nil {
+		log.Fatal(err)
+	}
+
 	if len(namespaces) != 0 {
 		log.Infof("Gathering from namespaces %q", namespaces)
 	} else {
@@ -130,6 +134,14 @@ func runGather(cmd *cobra.Command, args []string) {
 	} else {
 		localGather(clusters)
 	}
+}
+
+func validateOptions() error {
+	// --namespaces=""
+	if namespaces != nil && len(namespaces) == 0 {
+		return fmt.Errorf("nothing to gather: empty --namespaces")
+	}
+	return nil
 }
 
 func createLogger(directory string, verbose bool, format string) *zap.SugaredLogger {
