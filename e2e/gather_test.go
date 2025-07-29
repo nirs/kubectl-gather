@@ -152,51 +152,16 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 		"--namespaces=", "",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if err := commands.Run(cmd); err == nil {
+		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
-	// TODO: Empty namespace should result in gathering no resources.
-
-	validate.Exists(t, outputDir, clusters.Names,
-		defaultPVCResources,
-		commonClusterResources,
-		commonPVCResources,
-		commonNamespacedResources,
-		commonLogResources,
-	)
-
-	validate.Exists(t, outputDir, []string{clusters.C1},
-		c1ClusterNodes,
-		c1ClusterResources,
-		c1PVCResources,
-		c1NamespaceResources,
-		c1LogResources,
-	)
-
-	validate.Exists(t, outputDir, []string{clusters.C2},
-		c2ClusterNodes,
-		c2ClusterResources,
-		c2PVCResources,
-		c2NamespaceResources,
-		c2LogResources,
-	)
-
-	validate.Missing(t, outputDir, []string{clusters.C1},
-		c2ClusterNodes,
-		c2ClusterResources,
-		c2PVCResources,
-		c2NamespaceResources,
-		c2LogResources,
-	)
-
-	validate.Missing(t, outputDir, []string{clusters.C2},
-		c1ClusterNodes,
-		c1ClusterResources,
-		c1PVCResources,
-		c1NamespaceResources,
-		c1LogResources,
-	)
+	for _, cluster := range clusters.Names {
+		clusterDir := filepath.Join(outputDir, cluster)
+		if validate.PathExists(t, clusterDir) {
+			t.Errorf("cluster directory %q should not be created", clusterDir)
+		}
+	}
 }
 
 func TestGatherSpecificNamespaces(t *testing.T) {
