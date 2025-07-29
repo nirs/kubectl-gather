@@ -9,13 +9,13 @@ import (
 )
 
 func Exists(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
-	if !pathExists(t, outputDir) {
+	if !PathExists(t, outputDir) {
 		t.Fatalf("output directory %q does not exist", outputDir)
 	}
 
 	for _, cluster := range clusterNames {
 		clusterDir := filepath.Join(outputDir, cluster)
-		if !pathExists(t, clusterDir) {
+		if !PathExists(t, clusterDir) {
 			t.Fatalf("cluster directory %q does not exist", clusterDir)
 		}
 		for _, pattern := range slices.Concat(resources...) {
@@ -32,7 +32,7 @@ func Exists(t *testing.T, outputDir string, clusterNames []string, resources ...
 }
 
 func Missing(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
-	if !pathExists(t, outputDir) {
+	if !PathExists(t, outputDir) {
 		t.Fatalf("output directory %q does not exist", outputDir)
 	}
 
@@ -52,7 +52,7 @@ func Missing(t *testing.T, outputDir string, clusterNames []string, resources ..
 }
 
 func JSONLog(t *testing.T, logPath string) {
-	if !pathExists(t, logPath) {
+	if !PathExists(t, logPath) {
 		t.Fatalf("log %q does not exist", logPath)
 	}
 
@@ -73,7 +73,7 @@ func JSONLog(t *testing.T, logPath string) {
 	}
 }
 
-func pathExists(t *testing.T, path string) bool {
+func PathExists(t *testing.T, path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if !os.IsNotExist(err) {
 			t.Fatalf("error checking path %q: %v", path, err)
