@@ -39,10 +39,10 @@ func TestOutput(t *testing.T) {
 		if err := yaml.Unmarshal(data, &deployment); err != nil {
 			t.Fatal(err)
 		}
-		if deployment.ObjectMeta.Name != name {
-			t.Errorf("expected deployment name %q, got %s", name, deployment.ObjectMeta.Name)
+		if deployment.Name != name {
+			t.Errorf("expected deployment name %q, got %s", name, deployment.Name)
 		}
-		t.Logf("Read deployment %q", deployment.ObjectMeta.Name)
+		t.Logf("Read deployment %q", deployment.Name)
 	})
 
 	t.Run("pods", func(t *testing.T) {
@@ -64,10 +64,10 @@ func TestOutput(t *testing.T) {
 			if err := yaml.Unmarshal(data, &pod); err != nil {
 				t.Fatal(err)
 			}
-			if pod.ObjectMeta.Name != name {
-				t.Errorf("expected pod name %q, got %s", name, pod.ObjectMeta.Name)
+			if pod.Name != name {
+				t.Errorf("expected pod name %q, got %s", name, pod.Name)
 			}
-			t.Logf("Read pod %q", pod.ObjectMeta.Name)
+			t.Logf("Read pod %q", pod.Name)
 		}
 	})
 
@@ -90,10 +90,10 @@ func TestOutput(t *testing.T) {
 			if err := yaml.Unmarshal(data, &namespace); err != nil {
 				t.Fatal(err)
 			}
-			if namespace.ObjectMeta.Name != name {
-				t.Errorf("expected namespace name %q, got %s", name, namespace.ObjectMeta.Name)
+			if namespace.Name != name {
+				t.Errorf("expected namespace name %q, got %s", name, namespace.Name)
 			}
-			t.Logf("Read namespace %q", namespace.ObjectMeta.Name)
+			t.Logf("Read namespace %q", namespace.Name)
 		}
 	})
 }
