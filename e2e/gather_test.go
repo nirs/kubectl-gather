@@ -156,12 +156,25 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
-	for _, cluster := range clusters.Names {
-		clusterDir := filepath.Join(outputDir, cluster)
-		if validate.PathExists(t, clusterDir) {
-			t.Errorf("cluster directory %q should not be created", clusterDir)
-		}
+	validateNoClusterDir(t, outputDir)
+}
+
+func TestGatherEmptyNamespacesClusterFalse(t *testing.T) {
+	outputDir := "out/test-gather-empty-namespaces-cluster-false"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--namespaces=", "",
+		"--cluster=false",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err == nil {
+		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
+
+	validateNoClusterDir(t, outputDir)
 }
 
 func TestGatherSpecificNamespaces(t *testing.T) {
@@ -346,4 +359,15 @@ func TestJSONLogs(t *testing.T) {
 	}
 
 	validate.JSONLog(t, logPath)
+}
+
+// Test helpers
+
+func validateNoClusterDir(t *testing.T, outputDir string) {
+	for _, cluster := range clusters.Names {
+		clusterDir := filepath.Join(outputDir, cluster)
+		if validate.PathExists(t, clusterDir) {
+			t.Errorf("cluster directory %q should not be created", clusterDir)
+		}
+	}
 }
