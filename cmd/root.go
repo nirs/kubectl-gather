@@ -119,7 +119,7 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	clusters, err := loadClusterConfigs(contexts, kubeconfig)
+	clusterConfigs, err := loadClusterConfigs(contexts, kubeconfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,9 +145,9 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 
 	if remote {
-		remoteGather(clusters)
+		remoteGather(clusterConfigs)
 	} else {
-		localGather(clusters)
+		localGather(clusterConfigs)
 	}
 }
 
