@@ -202,10 +202,17 @@ func (g *Gatherer) prepare() error {
 
 	for i := range resources {
 		r := &resources[i]
-		for j := range namespaces {
-			namespace := namespaces[j]
+		if r.Namespaced {
+			for j := range namespaces {
+				namespace := namespaces[j]
+				g.gatherQueue.Queue(func() error {
+					g.gatherResources(r, namespace)
+					return nil
+				})
+			}
+		} else if g.opts.Namespaces == nil {
 			g.gatherQueue.Queue(func() error {
-				g.gatherResources(r, namespace)
+				g.gatherResources(r, "")
 				return nil
 			})
 		}
@@ -296,11 +303,6 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 	}
 
 	if len(g.opts.Namespaces) != 0 {
-		// If we gather specific namespace, we must use only namespaced resources.
-		if !res.Namespaced {
-			return false
-		}
-
 		// olm bug? - returned for *every namespace* when listing by namespace.
 		// https://github.com/operator-framework/operator-lifecycle-manager/issues/2932
 		if res.Name == "packagemanifests" && gv.Group == "packages.operators.coreos.com" {
