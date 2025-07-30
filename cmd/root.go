@@ -24,6 +24,7 @@ var kubeconfig string
 var contexts []string
 var namespaces []string
 var addons []string
+var cluster bool
 var remote bool
 var verbose bool
 var logFormat string
@@ -47,7 +48,14 @@ var example = `  # Gather data from all namespaces in current context in my-kube
 
   # Enable only the "logs" addon, gathering all resources and pod logs. Use
   # --addons= to disable all addons.
-  kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs`
+  kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs
+
+  # Gather both cluster and namespace resources from "my-ns" and "other-ns" in clusters
+  # "dr1", "dr2", and "hub".
+  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --cluster --directory gather.mixed
+
+  # Gather only cluster resources from clusters "dr1", "dr2" and "hub".
+  kubectl gather --contexts dr1,dr2,hub --namespace="" --cluster --directory gather.cluster`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
@@ -84,6 +92,9 @@ func init() {
 	rootCmd.Flags().StringSliceVar(&addons, "addons", nil,
 		fmt.Sprintf("if specified, comma separated list of addons to enable (available addons: %s)",
 			availableAddons()))
+	rootCmd.Flags().BoolVar(&cluster, "cluster", false,
+		"if true, gather cluster scoped resources, if namespaces and cluster flags are not "+
+			"specified, gather all resources")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
@@ -104,12 +115,12 @@ func runGather(cmd *cobra.Command, args []string) {
 		_ = log.Sync()
 	}()
 
-	clusters, err := loadClusterConfigs(contexts, kubeconfig)
-	if err != nil {
+	if err := validateOptions(cmd); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := validateOptions(); err != nil {
+	clusters, err := loadClusterConfigs(contexts, kubeconfig)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -117,6 +128,10 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Infof("Gathering from namespaces %q", namespaces)
 	} else {
 		log.Infof("Gathering from all namespaces")
+	}
+
+	if cluster {
+		log.Info("Gathering cluster scoped resources")
 	}
 
 	if addons != nil {
@@ -136,11 +151,18 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 }
 
-func validateOptions() error {
+func validateOptions(cmd *cobra.Command) error {
 	// --namespaces=""
-	if namespaces != nil && len(namespaces) == 0 {
-		return fmt.Errorf("nothing to gather: empty --namespaces")
+	// --namespaces="" --cluster=false
+	if namespaces != nil && len(namespaces) == 0 && !cluster {
+		return fmt.Errorf("nothing to gather: specify --namespaces or --cluster")
 	}
+
+	// --namespaces and --cluster flags are not set
+	if !cmd.Flags().Changed("namespaces") && !cmd.Flags().Changed("cluster") {
+		cluster = true
+	}
+
 	return nil
 }
 
