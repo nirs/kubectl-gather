@@ -97,8 +97,16 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 
 	var remoteArgs []string
 
-	if len(namespaces) > 0 {
+	if namespaces != nil {
 		remoteArgs = append(remoteArgs, "--namespaces="+strings.Join(namespaces, ","))
+	}
+
+	// --namespaces not set, --cluster not set -> cluster=true
+	// --namespaces set, --cluster not set -> cluster=false
+	if cluster {
+		remoteArgs = append(remoteArgs, "--cluster=true")
+	} else {
+		remoteArgs = append(remoteArgs, "--cluster=false")
 	}
 
 	if addons != nil {

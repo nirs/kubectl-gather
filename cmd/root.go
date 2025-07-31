@@ -124,10 +124,10 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	if len(namespaces) != 0 {
-		log.Infof("Gathering from namespaces %q", namespaces)
-	} else {
+	if namespaces == nil {
 		log.Infof("Gathering from all namespaces")
+	} else if len(namespaces) > 0 {
+		log.Infof("Gathering from namespaces %q", namespaces)
 	}
 
 	if cluster {
