@@ -39,6 +39,7 @@ func localGather(clusterConfigs []*clusterConfig) {
 			Context:    clusterConfig.Context,
 			Namespaces: namespaces,
 			Addons:     addons,
+			Cluster:    cluster,
 			Log:        log.Named(clusterConfig.Context),
 		}
 

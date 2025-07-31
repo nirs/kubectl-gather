@@ -43,6 +43,7 @@ type Options struct {
 	Context    string
 	Namespaces []string
 	Addons     []string
+	Cluster    bool
 	Log        *zap.SugaredLogger
 }
 
@@ -186,11 +187,11 @@ func (g *Gatherer) prepare() error {
 			// Nothing to gather - expected conditions when gathering namespace
 			// from multiple cluster when namespace exists only on some.
 			g.log.Debug("No namespace to gather")
-			return nil
+			if !g.opts.Cluster {
+				return nil
+			}
 		}
-	}
-
-	if len(namespaces) == 0 {
+	} else if g.opts.Namespaces == nil {
 		namespaces = []string{metav1.NamespaceAll}
 	}
 
@@ -210,7 +211,7 @@ func (g *Gatherer) prepare() error {
 					return nil
 				})
 			}
-		} else if g.opts.Namespaces == nil {
+		} else if g.opts.Cluster {
 			g.gatherQueue.Queue(func() error {
 				g.gatherResources(r, "")
 				return nil
