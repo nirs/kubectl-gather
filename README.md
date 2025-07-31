@@ -326,6 +326,88 @@ $ diff -u gather.before/hub/namespaces/deployment-rbd/ramendr.openshift.io/drpla
 ...
 ```
 
+## Gathering cluster scoped resources
+
+When gathering specific namespaces, addons gather related cluster-scoped 
+resources. Use "--cluster=true" to gather all cluster resources instead of 
+just those related to your namespaced resources.
+
+To gather specific namespaces along with cluster scoped resources:
+
+```
+$ kubectl-gather --contexts dr1,dr2 --namespaces=e2e-appset-deploy-cephfs --cluster --directory gather.mixed
+2025-08-01T14:25:15.029+0530	INFO	gather	Using kubeconfig "/Users/pari/.kube/config"
+2025-08-01T14:25:15.031+0530	INFO	gather	Gathering from namespaces ["e2e-appset-deploy-cephfs"]
+2025-08-01T14:25:15.031+0530	INFO	gather	Gathering cluster scoped resources
+2025-08-01T14:25:15.031+0530	INFO	gather	Using all addons
+2025-08-01T14:25:15.031+0530	INFO	gather	Gathering from cluster "dr1"
+2025-08-01T14:25:15.031+0530	INFO	gather	Gathering from cluster "dr2"
+2025-08-01T14:25:15.965+0530	INFO	gather	Gathered 458 resources from cluster "dr2" in 0.934 seconds
+2025-08-01T14:25:15.966+0530	INFO	gather	Gathered 475 resources from cluster "dr1" in 0.934 seconds
+2025-08-01T14:25:15.966+0530	INFO	gather	Gathered 933 resources from 2 clusters in 0.934 seconds
+```
+
+This gathers 12M MiB of data into the directory "gather.mixed":
+
+```
+$ du -sh gather.mixed/
+12M	gather.mixed
+```
+
+The gather directory should include namespace and cluster scoped resources:
+
+```
+$ tree -L 3 gather.mixed/
+gather.mixed/
+├── dr1
+│   ├── cluster
+│   │   ├── apiextensions.k8s.io
+│   │   ├── apiregistration.k8s.io
+│   │   ├── certificates.k8s.io
+│   │   ├── cluster.open-cluster-management.io
+│   │   ├── flowcontrol.apiserver.k8s.io
+│   │   ├── namespaces
+│   │   ├── networking.k8s.io
+│   │   ├── nodes
+│   │   ├── operator.open-cluster-management.io
+│   │   ├── operators.coreos.com
+│   │   ├── persistentvolumes
+│   │   ├── ramendr.openshift.io
+│   │   ├── rbac.authorization.k8s.io
+│   │   ├── replication.storage.openshift.io
+│   │   ├── scheduling.k8s.io
+│   │   ├── snapshot.storage.k8s.io
+│   │   ├── storage.k8s.io
+│   │   ├── submariner.io
+│   │   └── work.open-cluster-management.io
+│   └── namespaces
+│       └── e2e-appset-deploy-cephfs
+├── dr2
+│   ├── cluster
+│   │   ├── apiextensions.k8s.io
+│   │   ├── apiregistration.k8s.io
+│   │   ├── certificates.k8s.io
+│   │   ├── cluster.open-cluster-management.io
+│   │   ├── flowcontrol.apiserver.k8s.io
+│   │   ├── namespaces
+│   │   ├── networking.k8s.io
+│   │   ├── nodes
+│   │   ├── operator.open-cluster-management.io
+│   │   ├── operators.coreos.com
+│   │   ├── persistentvolumes
+│   │   ├── ramendr.openshift.io
+│   │   ├── rbac.authorization.k8s.io
+│   │   ├── replication.storage.openshift.io
+│   │   ├── scheduling.k8s.io
+│   │   ├── snapshot.storage.k8s.io
+│   │   ├── storage.k8s.io
+│   │   ├── submariner.io
+│   │   └── work.open-cluster-management.io
+│   └── namespaces
+│       └── e2e-appset-deploy-cephfs
+└── gather.log
+```
+
 ## Gathering remote clusters
 
 When gathering remote clusters it can be faster to gather the data on
