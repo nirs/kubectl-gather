@@ -101,44 +101,71 @@ func TestGather(t *testing.T) {
 		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
+	validateGatherAll(t, outputDir)
+}
+
+func TestGatherClusterTrue(t *testing.T) {
+	outputDir := "out/test-gather-cluster-true"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--cluster=true",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
+	validateGatherAll(t, outputDir)
+}
+
+func TestGatherClusterFalse(t *testing.T) {
+	outputDir := "out/test-gather-cluster-false"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--cluster=false",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
 	validate.Exists(t, outputDir, clusters.Names,
 		defaultPVCResources,
-		commonClusterResources,
 		commonPVCResources,
 		commonNamespacedResources,
 		commonLogResources,
 	)
 
 	validate.Exists(t, outputDir, []string{clusters.C1},
-		c1ClusterNodes,
-		c1ClusterResources,
 		c1PVCResources,
 		c1NamespaceResources,
 		c1LogResources,
 	)
 
 	validate.Exists(t, outputDir, []string{clusters.C2},
-		c2ClusterNodes,
-		c2ClusterResources,
 		c2PVCResources,
 		c2NamespaceResources,
 		c2LogResources,
+	)
+
+	validate.Missing(t, outputDir, clusters.Names,
+		commonClusterResources,
 	)
 
 	validate.Missing(t, outputDir, []string{clusters.C1},
-		c2ClusterNodes,
-		c2ClusterResources,
-		c2PVCResources,
-		c2NamespaceResources,
-		c2LogResources,
+		c1ClusterNodes,
+		c1ClusterResources,
 	)
 
 	validate.Missing(t, outputDir, []string{clusters.C2},
-		c1ClusterNodes,
-		c1ClusterResources,
-		c1PVCResources,
-		c1NamespaceResources,
-		c1LogResources,
+		c2ClusterNodes,
+		c2ClusterResources,
 	)
 }
 
@@ -177,6 +204,55 @@ func TestGatherEmptyNamespacesClusterFalse(t *testing.T) {
 	validateNoClusterDir(t, outputDir)
 }
 
+func TestGatherEmptyNamespacesClusterTrue(t *testing.T) {
+	outputDir := "out/test-gather-empty-namespaces-cluster-true"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--namespaces=", "",
+		"--cluster=true",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
+	validate.Exists(t, outputDir, clusters.Names,
+		defaultPVCResources,
+		commonClusterResources,
+		commonPVCResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C1},
+		c1ClusterNodes,
+		c1ClusterResources,
+		c1PVCResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C2},
+		c2ClusterNodes,
+		c2ClusterResources,
+		c2PVCResources,
+	)
+
+	validate.Missing(t, outputDir, clusters.Names,
+		commonNamespacedResources,
+		commonLogResources,
+	)
+
+	validate.Missing(t, outputDir, []string{clusters.C1},
+		c1NamespaceResources,
+		c1LogResources,
+	)
+
+	validate.Missing(t, outputDir, []string{clusters.C2},
+		c2NamespaceResources,
+		c2LogResources,
+	)
+}
+
 func TestGatherSpecificNamespaces(t *testing.T) {
 	outputDir := "out/test-gather-specific-namespaces"
 
@@ -191,23 +267,67 @@ func TestGatherSpecificNamespaces(t *testing.T) {
 		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
+	validateSpecificNamespaces(t, outputDir)
+}
+
+func TestGatherSpecificNamespacesClusterFalse(t *testing.T) {
+	outputDir := "out/test-gather-specific-namespaces-cluster-false"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--namespaces", "test-common,test-c1",
+		"--cluster=false",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
+	validateSpecificNamespaces(t, outputDir)
+}
+
+func TestGatherSpecificNamespacesClusterTrue(t *testing.T) {
+	outputDir := "out/test-gather-specific-namespaces-cluster-true"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--namespaces", "test-common,test-c1",
+		"--cluster=true",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
 	validate.Exists(t, outputDir, clusters.Names,
 		defaultPVCResources,
 		commonClusterResources,
 		commonPVCResources,
 		commonNamespacedResources,
+		commonLogResources,
 	)
 
 	validate.Exists(t, outputDir, []string{clusters.C1},
+		c1ClusterNodes,
 		c1ClusterResources,
 		c1PVCResources,
 		c1NamespaceResources,
+		c1LogResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C2},
+		c2ClusterNodes,
+		c2ClusterResources,
+		c2PVCResources,
 	)
 
 	validate.Missing(t, outputDir, []string{clusters.C2},
-		c2ClusterResources,
-		c2PVCResources,
 		c2NamespaceResources,
+		c2LogResources,
 	)
 }
 
@@ -362,6 +482,69 @@ func TestJSONLogs(t *testing.T) {
 }
 
 // Test helpers
+
+func validateGatherAll(t *testing.T, outputDir string) {
+	validate.Exists(t, outputDir, clusters.Names,
+		defaultPVCResources,
+		commonClusterResources,
+		commonPVCResources,
+		commonNamespacedResources,
+		commonLogResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C1},
+		c1ClusterNodes,
+		c1ClusterResources,
+		c1PVCResources,
+		c1NamespaceResources,
+		c1LogResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C2},
+		c2ClusterNodes,
+		c2ClusterResources,
+		c2PVCResources,
+		c2NamespaceResources,
+		c2LogResources,
+	)
+
+	validate.Missing(t, outputDir, []string{clusters.C1},
+		c2ClusterNodes,
+		c2ClusterResources,
+		c2PVCResources,
+		c2NamespaceResources,
+		c2LogResources,
+	)
+
+	validate.Missing(t, outputDir, []string{clusters.C2},
+		c1ClusterNodes,
+		c1ClusterResources,
+		c1PVCResources,
+		c1NamespaceResources,
+		c1LogResources,
+	)
+}
+
+func validateSpecificNamespaces(t *testing.T, outputDir string) {
+	validate.Exists(t, outputDir, clusters.Names,
+		defaultPVCResources,
+		commonClusterResources,
+		commonPVCResources,
+		commonNamespacedResources,
+	)
+
+	validate.Exists(t, outputDir, []string{clusters.C1},
+		c1ClusterResources,
+		c1PVCResources,
+		c1NamespaceResources,
+	)
+
+	validate.Missing(t, outputDir, []string{clusters.C2},
+		c2ClusterResources,
+		c2PVCResources,
+		c2NamespaceResources,
+	)
+}
 
 func validateNoClusterDir(t *testing.T, outputDir string) {
 	for _, cluster := range clusters.Names {
