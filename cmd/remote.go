@@ -16,20 +16,20 @@ import (
 	"github.com/nirs/kubectl-gather/pkg/gather"
 )
 
-func remoteGather(clusters []*clusterConfig) {
+func remoteGather(clusterConfigs []*clusterConfig) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
-	errors := make(chan error, len(clusters))
+	errors := make(chan error, len(clusterConfigs))
 
-	for i := range clusters {
-		cluster := clusters[i]
-		directory := filepath.Join(directory, cluster.Context)
+	for i := range clusterConfigs {
+		clusterConfig := clusterConfigs[i]
+		directory := filepath.Join(directory, clusterConfig.Context)
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := runMustGather(cluster.Context, directory); err != nil {
+			if err := runMustGather(clusterConfig.Context, directory); err != nil {
 				errors <- err
 			}
 		}()
@@ -43,7 +43,7 @@ func remoteGather(clusters []*clusterConfig) {
 	}
 
 	log.Infof("Gathered %d clusters in %.3f seconds",
-		len(clusters), time.Since(start).Seconds())
+		len(clusterConfigs), time.Since(start).Seconds())
 }
 
 func runMustGather(context string, directory string) error {

@@ -35,8 +35,8 @@ func NewPVCAddon(backend AddonBackend) (Addon, error) {
 }
 
 func (a *pvcsAddon) Inspect(pvc *unstructured.Unstructured) error {
-	// Needed only when gathering specific namespaces.
-	if len(a.Options().Namespaces) == 0 {
+	// When cluster flag is set, PV and StorageClass resources are already gathered at cluster level
+	if a.Options().Cluster {
 		return nil
 	}
 
