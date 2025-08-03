@@ -54,7 +54,7 @@ jobs:
 
   container:
     name: Build container
-    runs-on: ubuntu-24.04  # for recent enough podman
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
