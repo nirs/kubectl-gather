@@ -1,17 +1,18 @@
 # SPDX-FileCopyrightText: The kubectl-gather authors
 # SPDX-License-Identifier: Apache-2.0
 
-REGISTRY ?= quay.io
-REPO ?= nirsof
-IMAGE ?= gather
-
-package := github.com/nirs/kubectl-gather/pkg/gather
-
 # 0.5.1 when building from tag (release)
 # 0.5.1-1-gcf79160 when building without tag (development)
 version := $(shell git describe --tags | sed -e 's/^v//')
 
-image := $(REGISTRY)/$(REPO)/$(IMAGE):$(version)
+REGISTRY ?= quay.io
+REPO ?= nirsof
+IMAGE ?= gather
+TAG ?= $(version)
+
+package := github.com/nirs/kubectl-gather/pkg/gather
+
+image := $(REGISTRY)/$(REPO)/$(IMAGE):$(TAG)
 
 go_version := $(shell go list -f "{{.GoVersion}}" -m)
 
