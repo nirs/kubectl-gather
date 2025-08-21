@@ -96,4 +96,24 @@ func TestOutput(t *testing.T) {
 			t.Logf("Read namespace %q", namespace.Name)
 		}
 	})
+
+	t.Run("list non existent directory", func(t *testing.T) {
+		namespaceResources, err := reader.ListResources("test-common", "non-existent")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(namespaceResources) != 0 {
+			t.Errorf("expected empty slice, got %d resources: %v",
+				len(namespaceResources), namespaceResources)
+		}
+
+		clusterResources, err := reader.ListResources("", "non-existent")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(clusterResources) != 0 {
+			t.Errorf("expected empty slice, got %d resources: %v",
+				len(clusterResources), clusterResources)
+		}
+	})
 }

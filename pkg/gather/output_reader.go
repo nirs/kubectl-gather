@@ -29,6 +29,9 @@ func (r *OutputReader) ListResources(namespace, resource string) ([]string, erro
 
 	entries, err := os.ReadDir(resourceDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
 		return nil, err
 	}
 
