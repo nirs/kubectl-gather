@@ -97,23 +97,24 @@ func TestOutput(t *testing.T) {
 		}
 	})
 
-	t.Run("list non existent directory", func(t *testing.T) {
-		namespaceResources, err := reader.ListResources("test-common", "non-existent")
+	t.Run("missing namespaced", func(t *testing.T) {
+		found, err := reader.ListResources("test-common", "missing")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(namespaceResources) != 0 {
-			t.Errorf("expected empty slice, got %d resources: %v",
-				len(namespaceResources), namespaceResources)
+		if len(found) != 0 {
+			t.Errorf("expected empty slice, got %v", found)
 		}
 
-		clusterResources, err := reader.ListResources("", "non-existent")
+	})
+
+	t.Run("missing cluster scope", func(t *testing.T) {
+		found, err := reader.ListResources("", "missing")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(clusterResources) != 0 {
-			t.Errorf("expected empty slice, got %d resources: %v",
-				len(clusterResources), clusterResources)
+		if len(found) != 0 {
+			t.Errorf("expected empty slice, got %v", found)
 		}
 	})
 }
