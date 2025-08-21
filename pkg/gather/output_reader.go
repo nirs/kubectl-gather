@@ -4,6 +4,7 @@
 package gather
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +30,7 @@ func (r *OutputReader) ListResources(namespace, resource string) ([]string, erro
 
 	entries, err := os.ReadDir(resourceDir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
