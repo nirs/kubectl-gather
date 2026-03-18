@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	stdlog "log"
 	"os"
@@ -26,6 +27,8 @@ var namespaces []string
 var addons []string
 var cluster bool
 var remote bool
+var salt string
+var parsedSalt gather.Salt
 var verbose bool
 var logFormat string
 var log *zap.SugaredLogger
@@ -43,8 +46,9 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --directory gather.ns
 
   # Gather data on the remote clusters "dr1", "dr2" and "hub" and download it to
-  # "gather.remote/". Requires the "oc" command.
-  kubectl gather --contexts dr1,dr2,hub --remote --directory gather.remote
+  # "gather.remote/". Requires the "oc" command. Use --salt to ensure all remote
+  # clusters use the same salt for consistent secret hashing.
+  kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" --directory gather.remote
 
   # Enable only the "logs" addon, gathering all resources and pod logs. Use
   # --addons= to disable all addons.
@@ -97,6 +101,8 @@ func init() {
 			"specified, gather all resources")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
+	rootCmd.Flags().StringVar(&salt, "salt", "",
+		"base64-encoded 16-byte salt for secret hashing (default: randomly generated)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 	rootCmd.Flags().StringVar(&logFormat, "log-format", "text", "Set the logging format [text, json]")
@@ -122,6 +128,12 @@ func runGather(cmd *cobra.Command, args []string) {
 	clusterConfigs, err := loadClusterConfigs(contexts, kubeconfig)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if cmd.Flags().Changed("salt") {
+		log.Infof("Using user-provided salt %q", salt)
+	} else {
+		log.Infof("Using generated salt %q", salt)
 	}
 
 	if namespaces == nil {
@@ -152,6 +164,18 @@ func runGather(cmd *cobra.Command, args []string) {
 }
 
 func validateOptions(cmd *cobra.Command) error {
+	if salt != "" {
+		var err error
+		parsedSalt, err = validateSalt(salt)
+		if err != nil {
+			return err
+		}
+	} else {
+		parsedSalt = gather.RandomSalt()
+		// Keep the base64 salt string for logging and passing to remote clusters.
+		salt = base64.StdEncoding.EncodeToString(parsedSalt[:])
+	}
+
 	// --namespaces=""
 	// --namespaces="" --cluster=false
 	if namespaces != nil && len(namespaces) == 0 && !cluster {
@@ -221,6 +245,21 @@ func createLogger(directory string, verbose bool, format string) *zap.SugaredLog
 	)
 
 	return zap.New(core).Named("gather").Sugar()
+}
+
+func validateSalt(saltFlag string) (gather.Salt, error) {
+	var salt gather.Salt
+
+	decodedSalt, err := base64.StdEncoding.DecodeString(saltFlag)
+	if err != nil {
+		return salt, fmt.Errorf("invalid --salt value: must be base64-encoded: %w", err)
+	}
+	if len(decodedSalt) != 16 {
+		return salt, fmt.Errorf("invalid --salt value: must be 16 bytes, got %d", len(decodedSalt))
+	}
+
+	copy(salt[:], decodedSalt)
+	return salt, nil
 }
 
 func defaultGatherDirectory() string {

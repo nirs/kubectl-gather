@@ -44,6 +44,7 @@ type Options struct {
 	Namespaces []string
 	Addons     []string
 	Cluster    bool
+	Salt       Salt
 	Log        *zap.SugaredLogger
 }
 
@@ -101,6 +102,11 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	client, err := dynamic.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
+	}
+
+	// Generate a random salt if the Salt option is not set.
+	if opts.Salt == (Salt{}) {
+		opts.Salt = RandomSalt()
 	}
 
 	g := &Gatherer{
@@ -450,6 +456,8 @@ func (g *Gatherer) getResource(r *resourceInfo, name types.NamespacedName) (*uns
 }
 
 func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured) error {
+	g.sanitizeResource(item)
+
 	dst, err := g.createResource(r, item)
 	if err != nil {
 		return err
