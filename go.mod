@@ -5,6 +5,7 @@ go 1.25.0
 toolchain go1.26.1
 
 require (
+	github.com/aymanbagabas/go-udiff v0.4.1
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.49.0
@@ -12,6 +13,7 @@ require (
 	k8s.io/apimachinery v0.33.10
 	k8s.io/cli-runtime v0.33.10
 	k8s.io/client-go v0.33.10
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
@@ -56,5 +58,4 @@ require (
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )

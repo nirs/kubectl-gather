@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  config.yaml: 'key: value'
+kind: ConfigMap
+metadata:
+  name: test-configmap
+  namespace: default
