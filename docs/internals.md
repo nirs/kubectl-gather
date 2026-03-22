@@ -55,3 +55,42 @@ Work done in the inspect queue depends on the addon. Examples are:
 Workers cannot queue more work in the inspectWorkqueue. All work must be queued in gather step.
 
 The workers exit when there is no more work to do.
+
+## Cancellation
+
+`New()` accepts a `context.Context` and passes it to the work queues
+and all components. When the context is cancelled (e.g. via
+SIGINT/SIGTERM or `--timeout`), gathering stops at three layers:
+
+### Queue
+
+`Queue()` uses `select` on `ctx.Done()` to silently drop new work
+when the context is cancelled. Producers never block on a cancelled
+context.
+
+### Workers
+
+Workers process any in-flight work normally. The work functions
+themselves (API calls, exec.CommandContext, streaming) return quickly
+when the context is cancelled. Since the channel is unbuffered, at
+most one item per worker can be in flight at cancellation time.
+
+### Loops
+
+`gatherResources` checks `ctx.Err()` at the top of each iteration in
+both the pagination loop and the per-item loop, breaking out of local
+processing that does not touch the network.
+
+### Cleanup
+
+Functions that modify cluster state (e.g. creating agent pods) must
+clean up even after cancellation. `agent.Delete()` uses
+`context.Background()` instead of the gather context so the API call
+succeeds. Any future cluster modifications must follow the same
+pattern: `defer` cleanup with a fresh context.
+
+### Partial results
+
+When cancelled mid-gather, the output directory contains partial data.
+A warning is logged (e.g. "Gather cancelled, results are partial") and
+the context error is returned to the caller.
