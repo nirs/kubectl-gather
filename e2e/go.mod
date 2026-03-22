@@ -1,8 +1,8 @@
 module github.com/nirs/kubectl-gather/e2e
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.24.5
+toolchain go1.26.1
 
 require (
 	github.com/nirs/kubectl-gather v0.8.0

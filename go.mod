@@ -1,8 +1,8 @@
 module github.com/nirs/kubectl-gather
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.25.3
+toolchain go1.26.1
 
 require (
 	github.com/spf13/cobra v1.9.1
