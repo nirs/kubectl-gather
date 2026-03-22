@@ -4,13 +4,16 @@
 package cmd
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	stdlog "log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,6 +36,7 @@ var parsedSalt gather.Salt
 var verbose bool
 var logFormat string
 var mustGatherVersion bool
+var timeout time.Duration
 var log *zap.SugaredLogger
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
@@ -109,6 +113,8 @@ func init() {
 	rootCmd.Flags().StringVar(&logFormat, "log-format", "text", "Set the logging format [text, json]")
 	rootCmd.Flags().BoolVar(&mustGatherVersion, "must-gather-version", false,
 		"print must-gather version info and exit")
+	rootCmd.Flags().DurationVar(&timeout, "timeout", 0,
+		"maximum time to gather data, e.g. 5m, 1h30m (default no timeout)")
 
 	// Use rich yaml version.
 	v := gather.VersionInfo{
@@ -138,6 +144,16 @@ func runGather(cmd *cobra.Command, args []string) {
 
 	if err := validateOptions(cmd); err != nil {
 		log.Fatal(err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+		log.Infof("Using timeout %s", timeout)
 	}
 
 	clusterConfigs, err := loadClusterConfigs(contexts, kubeconfig)
@@ -172,9 +188,9 @@ func runGather(cmd *cobra.Command, args []string) {
 	}
 
 	if remote {
-		remoteGather(clusterConfigs)
+		remoteGather(ctx, clusterConfigs)
 	} else {
-		localGather(clusterConfigs)
+		localGather(ctx, clusterConfigs)
 	}
 }
 

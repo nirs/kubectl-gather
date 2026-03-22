@@ -17,7 +17,7 @@ type result struct {
 	Err   error
 }
 
-func localGather(clusterConfigs []*clusterConfig) {
+func localGather(ctx context.Context, clusterConfigs []*clusterConfig) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
@@ -49,7 +49,7 @@ func localGather(clusterConfigs []*clusterConfig) {
 		go func() {
 			defer wg.Done()
 
-			g, err := gather.New(context.TODO(), clusterConfig.Config, directory, options)
+			g, err := gather.New(ctx, clusterConfig.Config, directory, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
