@@ -4,7 +4,6 @@
 package gather
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -143,7 +142,7 @@ func (a *RookAddon) gatherLogs(namespace string, dataDir string) {
 func (a *RookAddon) findNodesToGather(namespace string) ([]string, error) {
 	pods, err := a.client.CoreV1().
 		Pods(namespace).
-		List(context.TODO(), metav1.ListOptions{})
+		List(a.Context(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +170,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 	}
 	defer agent.Delete()
 
-	if err := agent.WaitUntilRunning(context.TODO()); err != nil {
+	if err := agent.WaitUntilRunning(a.Context()); err != nil {
 		a.log.Warnf("Error waiting for agent pod: %s", agent, err)
 		return
 	}
@@ -213,7 +212,7 @@ func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, 
 		},
 	}
 
-	if err := agent.Create(context.TODO()); err != nil {
+	if err := agent.Create(a.Context()); err != nil {
 		return nil, err
 	}
 
@@ -223,7 +222,7 @@ func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, 
 func (a *RookAddon) findPod(namespace string, labelSelector string) (*corev1.Pod, error) {
 	pods, err := a.client.CoreV1().
 		Pods(namespace).
-		List(context.TODO(), metav1.ListOptions{
+		List(a.Context(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 	if err != nil {

@@ -4,6 +4,7 @@
 package gather
 
 import (
+	"context"
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,6 +14,10 @@ import (
 
 type gatherBackend struct {
 	g *Gatherer
+}
+
+func (b *gatherBackend) Context() context.Context {
+	return b.g.ctx
 }
 
 func (b *gatherBackend) Config() *rest.Config {
