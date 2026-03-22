@@ -62,6 +62,7 @@ type Addon interface {
 }
 
 type Gatherer struct {
+	ctx          context.Context
 	config       *rest.Config
 	httpClient   *http.Client
 	client       *dynamic.DynamicClient
@@ -91,7 +92,7 @@ func (r *resourceInfo) Name() string {
 	return r.Group + "/" + r.Resource
 }
 
-func New(config *rest.Config, directory string, opts Options) (*Gatherer, error) {
+func New(ctx context.Context, config *rest.Config, directory string, opts Options) (*Gatherer, error) {
 	// We want list all api resources (~80) quickly, gather logs from all pods,
 	// and run various commands on the nodes. This change makes gathering 60
 	// times faster than the defaults. (9.6 seconds -> 0.15 seconds).
@@ -118,6 +119,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	}
 
 	g := &Gatherer{
+		ctx:          ctx,
 		config:       config,
 		httpClient:   httpClient,
 		client:       client,
@@ -286,7 +288,7 @@ func (g *Gatherer) gatherNamespaces() ([]string, error) {
 
 	for _, namespace := range g.opts.Namespaces {
 		ns, err := g.client.Resource(gvr).
-			Get(context.TODO(), namespace, metav1.GetOptions{})
+			Get(g.ctx, namespace, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				return nil, fmt.Errorf("cannot get namespace %q: %s", namespace, err)
@@ -403,17 +405,16 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 func (g *Gatherer) listResources(r *resourceInfo, namespace string, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	start := time.Now()
 
-	ctx := context.TODO()
 	var list *unstructured.UnstructuredList
 	var err error
 
 	if r.Namespaced {
 		list, err = g.client.Resource(r.GroupVersionResource).
 			Namespace(namespace).
-			List(ctx, opts)
+			List(g.ctx, opts)
 	} else {
 		list, err = g.client.Resource(r.GroupVersionResource).
-			List(ctx, opts)
+			List(g.ctx, opts)
 	}
 
 	if err != nil {
@@ -450,16 +451,15 @@ func (g *Gatherer) gatherResource(gvr schema.GroupVersionResource, name types.Na
 }
 
 func (g *Gatherer) getResource(r *resourceInfo, name types.NamespacedName) (*unstructured.Unstructured, error) {
-	ctx := context.TODO()
 	var opts metav1.GetOptions
 
 	if r.Namespaced {
 		return g.client.Resource(r.GroupVersionResource).
 			Namespace(name.Namespace).
-			Get(ctx, name.Name, opts)
+			Get(g.ctx, name.Name, opts)
 	} else {
 		return g.client.Resource(r.GroupVersionResource).
-			Get(ctx, name.Name, opts)
+			Get(g.ctx, name.Name, opts)
 	}
 }
 

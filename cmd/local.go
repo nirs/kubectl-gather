@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 	"sync"
 	"time"
@@ -48,7 +49,7 @@ func localGather(clusterConfigs []*clusterConfig) {
 		go func() {
 			defer wg.Done()
 
-			g, err := gather.New(clusterConfig.Config, directory, options)
+			g, err := gather.New(context.TODO(), clusterConfig.Config, directory, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
