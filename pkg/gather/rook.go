@@ -171,7 +171,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 	}
 	defer agent.Delete()
 
-	if err := agent.WaitUntilRunning(); err != nil {
+	if err := agent.WaitUntilRunning(context.TODO()); err != nil {
 		a.log.Warnf("Error waiting for agent pod: %s", agent, err)
 		return
 	}
@@ -213,7 +213,7 @@ func (a *RookAddon) createAgentPod(nodeName string, dataDir string) (*AgentPod, 
 		},
 	}
 
-	if err := agent.Create(); err != nil {
+	if err := agent.Create(context.TODO()); err != nil {
 		return nil, err
 	}
 
