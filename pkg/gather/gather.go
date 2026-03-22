@@ -172,7 +172,16 @@ func (g *Gatherer) Gather() error {
 	inspectErr := g.inspectQueue.Wait()
 	g.log.Debugf("Inspect step finished in %.2f seconds", time.Since(start).Seconds())
 
-	// All work completed. Report fatal errors to caller.
+	if g.ctx.Err() != nil {
+		elapsed := time.Since(start)
+		if g.ctx.Err() == context.DeadlineExceeded {
+			g.log.Warnf("Gather deadline exceeded after %.3f seconds, results are partial", elapsed.Seconds())
+		} else {
+			g.log.Warn("Gather cancelled, results are partial")
+		}
+		return g.ctx.Err()
+	}
+
 	if gatherErr != nil || inspectErr != nil {
 		return fmt.Errorf("failed to gather (gather: %w, inspect: %w)", gatherErr, inspectErr)
 	}
