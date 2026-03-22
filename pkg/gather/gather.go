@@ -345,7 +345,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 	opts := metav1.ListOptions{Limit: listResourcesLimit}
 	count := 0
 
-	for {
+	for g.ctx.Err() == nil {
 		list, err := g.listResources(r, namespace, opts)
 		if err != nil {
 			// Fall back to full list only if this was an attempt to get the next
@@ -370,6 +370,10 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 		addon := g.addons[r.Name()]
 
 		for i := range list.Items {
+			if g.ctx.Err() != nil {
+				break
+			}
+
 			item := &list.Items[i]
 			key := g.keyFromResource(r, item)
 
