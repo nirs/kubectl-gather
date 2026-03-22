@@ -81,21 +81,20 @@ func (a *AgentPod) Create() error {
 
 type agentWatcher struct {
 	agent *AgentPod
-	ctx   context.Context
 }
 
-func (w *agentWatcher) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (w *agentWatcher) WatchWithContext(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	w.agent.Log.Debugf("Watching agent pod %q", w.agent)
 	opts.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, w.agent.Pod.Name).String()
-	return w.agent.Client.CoreV1().Pods(w.agent.Pod.Namespace).Watch(w.ctx, opts)
+	return w.agent.Client.CoreV1().Pods(w.agent.Pod.Namespace).Watch(ctx, opts)
 }
 
 func (a *AgentPod) WaitUntilRunning() error {
 	ctx, cancel := context.WithTimeout(context.Background(), agentPodTimeoutSeconds*time.Second)
 	defer cancel()
 
-	w := agentWatcher{agent: a, ctx: ctx}
-	watcher, err := toolswatch.NewRetryWatcher(a.Pod.ResourceVersion, &w)
+	w := agentWatcher{agent: a}
+	watcher, err := toolswatch.NewRetryWatcherWithContext(ctx, a.Pod.ResourceVersion, &w)
 	if err != nil {
 		return err
 	}
