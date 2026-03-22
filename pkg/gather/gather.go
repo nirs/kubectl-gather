@@ -125,16 +125,13 @@ func New(ctx context.Context, config *rest.Config, directory string, opts Option
 		client:       client,
 		output:       OutputDirectory{base: directory},
 		opts:         &opts,
-		gatherQueue:  NewWorkQueue(workQueueSize),
-		inspectQueue: NewWorkQueue(workQueueSize),
+		gatherQueue:  NewWorkQueue(ctx, workQueueSize),
+		inspectQueue: NewWorkQueue(ctx, workQueueSize),
 		log:          opts.Log,
 		resources:    make(map[string]struct{}),
 	}
 
-	backend := &gatherBackend{
-		g:  g,
-		wq: g.inspectQueue,
-	}
+	backend := &gatherBackend{g: g}
 
 	addons, err := createAddons(backend)
 	if err != nil {
