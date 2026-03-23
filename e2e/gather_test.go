@@ -23,6 +23,7 @@ var (
 		"namespaces/test-common/apps/replicasets/common-busybox-*.yaml",
 		"namespaces/test-common/configmaps/kube-root-ca.crt.yaml",
 		"namespaces/test-common/serviceaccounts/default.yaml",
+		"namespaces/test-common/secrets/common-secret1.yaml",
 	}
 
 	commonLogResources = []string{
@@ -48,6 +49,7 @@ var (
 		"namespaces/test-c1/apps/replicasets/c1-busybox-*.yaml",
 		"namespaces/test-c1/configmaps/kube-root-ca.crt.yaml",
 		"namespaces/test-c1/serviceaccounts/default.yaml",
+		"namespaces/test-c1/secrets/c1-secret1.yaml",
 	}
 
 	c1LogResources = []string{
@@ -73,6 +75,7 @@ var (
 		"namespaces/test-c2/apps/replicasets/c2-busybox-*.yaml",
 		"namespaces/test-c2/configmaps/kube-root-ca.crt.yaml",
 		"namespaces/test-c2/serviceaccounts/default.yaml",
+		"namespaces/test-c2/secrets/c2-secret1.yaml",
 	}
 
 	c2LogResources = []string{

@@ -4,3 +4,4 @@ resources:
   - ns.yaml
   - pvc.yaml
   - deploy.yaml
+  - secret.yaml
