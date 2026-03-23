@@ -83,7 +83,7 @@ func (a *RookAddon) gatherCommands(namespace string) {
 
 	a.log.Debugf("Storing commands output in %q", commands)
 
-	rc := NewRemoteCommand(tools, a.Options(), a.log, commands)
+	rc := NewRemoteCommand(a.Context(), tools, a.Options(), a.log, commands)
 
 	// Running remote ceph commands in parallel is much faster.
 
@@ -183,7 +183,7 @@ func (a *RookAddon) gatherNodeLogs(namespace string, nodeName string, dataDir st
 		return
 	}
 
-	rd := NewRemoteDirectory(agent.Pod, a.Options(), a.log)
+	rd := NewRemoteDirectory(a.Context(), agent.Pod, a.Options(), a.log)
 	src := filepath.Join(dataDir, namespace, "log")
 
 	if err := rd.Gather(src, logs); err != nil {
