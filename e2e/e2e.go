@@ -1,12 +1,15 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -54,6 +57,20 @@ func findDataRoot(t *testing.T, clusterDir string) string {
 	}
 
 	return filepath.Base(filepath.Dir(matches[0]))
+}
+
+func busyboxPod(t *testing.T, client *kubernetes.Clientset) *corev1.Pod {
+	t.Helper()
+	pods, err := client.CoreV1().Pods("test-common").List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app=busybox",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pods.Items) == 0 {
+		t.Fatal("no busybox pods found in test-common namespace")
+	}
+	return &pods.Items[0]
 }
 
 func newClientset(t *testing.T, context string) *kubernetes.Clientset {
