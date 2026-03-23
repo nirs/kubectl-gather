@@ -98,6 +98,7 @@ func TestGatherLocal(t *testing.T) {
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -114,6 +115,7 @@ func TestGatherClusterTrue(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--cluster=true",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -134,6 +136,7 @@ func TestGatherRemote(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--remote",
 		"--directory", outputDir,
+		"--timeout", timeoutRemote.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Fatalf("kubectl-gather --remote failed: %s", err)
@@ -153,6 +156,7 @@ func TestGatherClusterFalse(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--cluster=false",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -202,6 +206,7 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces=", "",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
@@ -219,6 +224,7 @@ func TestGatherEmptyNamespacesClusterFalse(t *testing.T) {
 		"--namespaces=", "",
 		"--cluster=false",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
@@ -236,6 +242,7 @@ func TestGatherEmptyNamespacesClusterTrue(t *testing.T) {
 		"--namespaces=", "",
 		"--cluster=true",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -285,6 +292,7 @@ func TestGatherSpecificNamespaces(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -302,6 +310,7 @@ func TestGatherSpecificNamespacesClusterFalse(t *testing.T) {
 		"--namespaces", "test-common,test-c1",
 		"--cluster=false",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -319,6 +328,7 @@ func TestGatherSpecificNamespacesClusterTrue(t *testing.T) {
 		"--namespaces", "test-common,test-c1",
 		"--cluster=true",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -363,6 +373,7 @@ func TestGatherAddonsLogs(t *testing.T) {
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "logs",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -408,6 +419,7 @@ func TestGatherAddonsPVCs(t *testing.T) {
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "pvcs",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -450,6 +462,7 @@ func TestGatherAddonsEmpty(t *testing.T) {
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons=",
 		"--directory", outputDir,
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)
@@ -520,6 +533,7 @@ func TestJSONLogs(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 		"--log-format", "json",
+		"--timeout", timeoutLocal.String(),
 	)
 	if _, err := commands.Run(cmd); err != nil {
 		t.Errorf("kubectl-gather failed: %s", err)

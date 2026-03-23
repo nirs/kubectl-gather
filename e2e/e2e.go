@@ -5,12 +5,19 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubectlGather = "../kubectl-gather"
+
+// timeoutLocal for local gather tests to ensure tests fail quickly.
+const timeoutLocal = 5 * time.Second
+
+// timeoutRemote for remote gather tests, considering must-gather 10s polling.
+const timeoutRemote = 30 * time.Second
 
 // findDataRoot finds the image digest directory in a remote gather cluster
 // output. The directory name format depends on the oc version:
