@@ -5,6 +5,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubectlGather = "../kubectl-gather"
@@ -44,4 +47,24 @@ func findDataRoot(t *testing.T, clusterDir string) string {
 	}
 
 	return filepath.Base(filepath.Dir(matches[0]))
+}
+
+func newClientset(t *testing.T, context string) *kubernetes.Clientset {
+	t.Helper()
+
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: context}
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return client
 }
