@@ -416,11 +416,15 @@ the remote clusters and download the data to the local directory.
 > [!IMPORTANT]
 > Gathering remotely require the "oc" command.
 
+Use `--salt` to ensure all remote clusters use the same salt for
+consistent secret hashing. See [Secret
+sanitization](#secret-sanitization) for more info.
+
 In this example we gather data from OpenShift Data Foundation clusters
 configured for disaster recovery. Gathering everything takes more than 6
 minutes:
 
-    $ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --remote --directory gather.remote
+    $ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --remote --salt "$(openssl rand -base64 16)" --directory gather.remote
     2024-05-28T20:57:32.684+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
     2024-05-28T20:57:32.686+0300	INFO	gather	Gathering from all namespaces
     2024-05-28T20:57:32.686+0300	INFO	gather	Gathering on remote cluster "kevin-rdr-c2"
@@ -496,7 +500,7 @@ Gathering only specific namespaces from these clusters is much quicker.
 In this example we gather data related to single DR protected VM:
 
 ```
-$ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --namespaces openshift-dr-ops,ui-vms3 --remote -d gather.remote.app
+$ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --namespaces openshift-dr-ops,ui-vms3 --remote --salt "$(openssl rand -base64 16)" -d gather.remote.app
 2024-05-28T21:14:15.883+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-28T21:14:15.884+0300	INFO	gather	Gathering from namespaces [openshift-dr-ops ui-vms3]
 2024-05-28T21:14:15.884+0300	INFO	gather	Gathering on remote cluster "kevin-rdr-c2"
@@ -572,6 +576,42 @@ $ du -sh gather.*
 35M	    gather.logs
 8.8M	gather.resources
 ```
+
+## Secret sanitization
+
+All Secret resources are automatically sanitized before writing. Each
+data value is replaced with a deterministic PBKDF2-HMAC-SHA256 hash,
+and the `kubectl.kubernetes.io/last-applied-configuration` annotation
+is stripped to prevent plaintext leaks.
+
+A `kubectl-gather.nirs.github.com/sanitized` annotation is added to
+each sanitized secret with the base64-encoded salt. The salt can be
+used to verify the original secret hash value.
+
+By default a random salt is generated. To use a specific salt, use the
+`--salt` flag with `--remote` to ensure all remote clusters use the
+same salt.
+
+```
+$ kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" -d gather.remote
+```
+
+Specifying a salt is also useful when comparing changes between two
+gather runs:
+
+```
+salt=$(openssl rand -base64 16)
+kubectl gather --contexts hub,dr1,dr2 -d gather.a --salt "$salt"
+sleep 60
+kubectl gather --contexts hub,dr1,dr2 -d gather.b --salt "$salt"
+diff -ur gather.a gather.b
+```
+
+Without a specified salt, the diff would include unwanted changes in
+secret hashes and annotations.
+
+Gathering secrets can be slower than other resources. The impact is
+small when gathering only a few namespaces.
 
 ## Integrating with other programs
 
