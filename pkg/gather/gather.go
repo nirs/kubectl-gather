@@ -36,7 +36,7 @@ const workQueueSize = 6
 
 // Replaced during build with actual values.
 var Version = "latest"
-var Image = "quay.io/nirsof/gather:latest"
+var Image = "ghcr.io/nirs/gather:latest"
 
 type Options struct {
 	Kubeconfig string

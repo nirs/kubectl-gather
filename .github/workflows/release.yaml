@@ -44,6 +44,8 @@ jobs:
 
   release-container:
     name: Release container
+    permissions:
+      packages: write
     runs-on: ubuntu-latest
     needs: container
     steps:
@@ -53,11 +55,11 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: gather
-      - name: Login to quay.io
+      - name: Login to ghcr.io
         uses: docker/login-action@v4
         with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_ROBOT }}
-          password: ${{ secrets.QUAY_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push container
-        run: make container-multiarch-push
+        run: make container-multiarch-push REPO=${{ github.repository_owner }}

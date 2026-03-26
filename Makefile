@@ -5,11 +5,12 @@
 # 0.5.1-1-gcf79160 when building without tag (development)
 version := $(shell git describe --tags | sed -e 's/^v//')
 
-REGISTRY ?= quay.io
-REPO ?= nirsof
+REGISTRY ?= ghcr.io
+REPO ?= nirs
 IMAGE ?= gather
 TAG ?= $(version)
 GOARCH ?= $(shell go env GOARCH)
+PLATFORMS ?= linux/amd64,linux/arm64
 
 package := github.com/nirs/kubectl-gather/pkg/gather
 
@@ -37,10 +38,10 @@ lint:
 	golangci-lint run ./...
 	cd e2e && golangci-lint run ./...
 
-# Build multiarch image locally using qemu emulation.
+# Build container image locally. Uses qemu emulation for non-native platforms.
 container:
 	podman build \
-		--platform=linux/amd64,linux/arm64 \
+		--platform=$(PLATFORMS) \
 		--manifest $(image) \
 		--build-arg ldflags="$(ldflags)" \
 		--build-arg go_version="$(go_version)" \

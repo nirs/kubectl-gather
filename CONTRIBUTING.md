@@ -105,18 +105,52 @@ gather.local
     └── namespaces
 ```
 
-## Build and push a container image
+## Build a container image
 
-Build and push a multi-arch container image to your private quay.io
-repo:
+Build a multi-arch container image locally for testing:
 
 ```console
-make container REPO=my-quay-user
-make container-push
+make container
 ```
 
-> [!IMPORTANT]
-> - Make your repo public to used it for gathering.
+This builds for both `linux/amd64` and `linux/arm64` using QEMU
+emulation for the non-native platform. To build for a single
+platform:
+
+```console
+make container PLATFORMS=linux/arm64
+```
+
+> [!NOTE]
+> QEMU emulation may not work with all Go versions. Go 1.26 is known
+> to crash under QEMU user-mode emulation. Use `PLATFORMS` to build
+> only for your native architecture as a workaround.
+
+## Push a container image
+
+The release workflow pushes the container image to ghcr.io automatically.
+You should not need to push manually. If you do, create a GitHub Personal
+Access Token (classic) with `write:packages` scope. Fine-grained tokens
+do not support GitHub Packages yet.
+
+Create a token at https://github.com/settings/tokens/new?scopes=write:packages
+
+1. Login to ghcr.io using the PAT as the password:
+
+   ```console
+   podman login ghcr.io -u my-github-user
+   ```
+
+2. Push to your ghcr.io repo:
+
+   ```console
+   make container-push REPO=my-github-user
+   ```
+
+3. If this is your first push, make the package public so
+   `kubectl-gather --remote` can pull it. GHCR packages are private
+   by default. Change the visibility at
+   `https://github.com/users/<username>/packages/container/gather/settings`.
 
 ## Testing remote gather
 
@@ -144,7 +178,7 @@ gather.remote
 │   ├── event-filter.html
 │   ├── must-gather.log
 │   ├── must-gather.logs
-│   ├── quay-io-nirsof-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
+│   ├── ghcr-io-nirs-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
 │   │   ├── cluster
 │   │   ├── gather.log
 │   │   ├── gather.logs
@@ -155,7 +189,7 @@ gather.remote
     ├── event-filter.html
     ├── must-gather.log
     ├── must-gather.logs
-    ├── quay-io-nirsof-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
+    ├── ghcr-io-nirs-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
     │   ├── cluster
     │   ├── gather.log
     │   ├── gather.logs
