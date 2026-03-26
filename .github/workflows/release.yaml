@@ -37,22 +37,27 @@ jobs:
         md5sum: FALSE
         compress_assets: OFF
         build_command: make
+
+  container:
+    name: Container
+    uses: ./.github/workflows/container.yaml
+
   release-container:
     name: Release container
     runs-on: ubuntu-latest
+    needs: container
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
-      - name: Setup multi-arch podman
-        run: |
-          sudo apt update
-          sudo apt install -y qemu-user-static podman
-          podman version
+      - name: Download multiarch image
+        uses: actions/download-artifact@v7
+        with:
+          name: gather
       - name: Login to quay.io
         uses: docker/login-action@v4
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT }}
           password: ${{ secrets.QUAY_TOKEN }}
-      - name: Build and push container
-        run: make container-push
+      - name: Push container
+        run: make container-multiarch-push

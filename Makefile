@@ -9,12 +9,15 @@ REGISTRY ?= quay.io
 REPO ?= nirsof
 IMAGE ?= gather
 TAG ?= $(version)
+GOARCH ?= $(shell go env GOARCH)
 
 package := github.com/nirs/kubectl-gather/pkg/gather
 
 image := $(REGISTRY)/$(REPO)/$(IMAGE):$(TAG)
+image_arch = $(image)-$(GOARCH)
 
-go_version := $(shell go list -f "{{.GoVersion}}" -m)
+# Lazy evaluation - resolved only when used by targets that need it.
+go_version = $(shell go list -f "{{.GoVersion}}" -m)
 
 # % go build -ldflags="-help"
 #  -s	disable symbol table
@@ -25,7 +28,8 @@ ldflags := -s -w \
 	-X '$(package).Version=$(version)' \
 	-X '$(package).Image=$(image)'
 
-.PHONY: all kubectl-gather
+.PHONY: all kubectl-gather lint container container-native \
+	container-multiarch container-push container-multiarch-push
 
 all: kubectl-gather
 
@@ -33,6 +37,7 @@ lint:
 	golangci-lint run ./...
 	cd e2e && golangci-lint run ./...
 
+# Build multiarch image locally using qemu emulation.
 container:
 	podman build \
 		--platform=linux/amd64,linux/arm64 \
@@ -41,8 +46,38 @@ container:
 		--build-arg go_version="$(go_version)" \
 		.
 
-container-push: container
+container-push:
 	podman manifest push --all $(image)
+
+# Parallel native container build targets used by github workflow.
+
+# Build image for the native architecture.
+container-native:
+	podman build \
+		--tag $(image_arch) \
+		--build-arg ldflags="$(ldflags)" \
+		--build-arg go_version="$(go_version)" \
+		.
+
+# Save native image as OCI archive.
+$(IMAGE)-$(GOARCH).tar: container-native
+	podman save --format oci-archive -o $@ $(image_arch)
+
+# Create multiarch manifest from per-arch images.
+# Use containers-storage: to reference local images, otherwise podman
+# tries to pull from the registry.
+container-multiarch:
+	podman manifest create $(image) \
+		containers-storage:$(image)-amd64 \
+		containers-storage:$(image)-arm64
+
+# Save multiarch manifest as OCI archive.
+$(IMAGE).tar:
+	podman manifest push --all $(image) oci-archive:$@
+
+# Push multiarch OCI archive to registry.
+container-multiarch-push:
+	skopeo copy --all oci-archive:$(IMAGE).tar docker://$(image)
 
 # Build env variables:
 # - CGO_ENABLED=0: Disable CGO to avoid dependencies on libc. Built image can
