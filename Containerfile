@@ -41,5 +41,7 @@ COPY --from=builder /build/kubectl-gather /usr/bin/kubectl-gather
 COPY gather /usr/bin/gather
 COPY LICENSE licenses/Apache-2.0.txt
 
+LABEL org.opencontainers.image.source=https://github.com/nirs/kubectl-gather
+
 # Use exec form to allow passing arguemnts from docker commmand.
 ENTRYPOINT ["/usr/bin/gather"]
