@@ -65,52 +65,28 @@ ln -s $PWD/kubectl_complete-gather ~/bin/
 ln -s $PWD/kubectl_complete-gather ~/bin/oc_complete-gather
 ```
 
-## Creating test clusters
+## Testing
 
-Create test clusters:
-
-```console
-kind create cluster -n c1
-kind create cluster -n c2
-```
-
-> [!NOTE]
-> kind adds "kind-" prefix to the cluster names
-
-## Testing local gather
-
-Gather data from the kind clusters:
+Build and run the end-to-end tests:
 
 ```console
-% kubectl gather --contexts kind-c1,kind-c2 -d gather.local
-2024-09-04T02:05:12.146+0300	INFO	gather	Using kubeconfig "/Users/nsoffer/.kube/config"
-2024-09-04T02:05:12.148+0300	INFO	gather	Gathering from all namespaces
-2024-09-04T02:05:12.148+0300	INFO	gather	Using all addons
-2024-09-04T02:05:12.148+0300	INFO	gather	Gathering from cluster "kind-c1"
-2024-09-04T02:05:12.148+0300	INFO	gather	Gathering from cluster "kind-c2"
-2024-09-04T02:05:12.288+0300	INFO	gather	Gathered 324 resources from cluster "kind-c1" in 0.140 seconds
-2024-09-04T02:05:12.288+0300	INFO	gather	Gathered 339 resources from cluster "kind-c2" in 0.140 seconds
-2024-09-04T02:05:12.288+0300	INFO	gather	Gathered 663 resources from 2 clusters in 0.140 seconds
+make
+make test
 ```
 
-Inspecting gathered data:
+This creates kind clusters, deploys test workloads, and runs all tests.
+On subsequent runs, existing clusters are reused.
+
+To delete the test clusters and clean up test outputs:
 
 ```console
-% tree -L2 gather.local
-gather.local
-├── gather.log
-├── kind-c1
-│   ├── cluster
-│   └── namespaces
-└── kind-c2
-    ├── cluster
-    └── namespaces
+make clean
 ```
 
-## Build and push a container image
+## Building and pushing container images
 
-Build and push a multi-arch container image to your private quay.io
-repo:
+Container images are built and published by CI. For local testing with
+`--remote`, build and push a multi-arch image to your own registry:
 
 ```console
 make container REPO=my-quay-user
@@ -118,53 +94,7 @@ make container-push
 ```
 
 > [!IMPORTANT]
-> - Make your repo public to used it for gathering.
-
-## Testing remote gather
-
-Gather data data remotely using your new image:
-
-```console
-% kubectl gather --contexts kind-c1,kind-c2 --remote -d gather.remote
-2024-09-04T02:45:26.051+0300	INFO	gather	Using kubeconfig "/Users/nsoffer/.kube/config"
-2024-09-04T02:45:26.051+0300	INFO	gather	Gathering from all namespaces
-2024-09-04T02:45:26.051+0300	INFO	gather	Using all addons
-2024-09-04T02:45:26.051+0300	INFO	gather	Gathering on remote cluster "kind-c2"
-2024-09-04T02:45:26.052+0300	INFO	gather	Gathering on remote cluster "kind-c1"
-2024-09-04T02:45:36.435+0300	INFO	gather	Gathered on remote cluster "kind-c2" in 10.383 seconds
-2024-09-04T02:45:36.437+0300	INFO	gather	Gathered on remote cluster "kind-c1" in 10.385 seconds
-2024-09-04T02:45:36.437+0300	INFO	gather	Gathered 2 clusters in 10.385 seconds
-```
-
-Inspecting gathered data:
-
-```console
-% tree -L3 gather.remote
-gather.remote
-├── gather.log
-├── kind-c1
-│   ├── event-filter.html
-│   ├── must-gather.log
-│   ├── must-gather.logs
-│   ├── quay-io-nirsof-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
-│   │   ├── cluster
-│   │   ├── gather.log
-│   │   ├── gather.logs
-│   │   ├── namespaces
-│   │   └── version
-│   └── timestamp
-└── kind-c2
-    ├── event-filter.html
-    ├── must-gather.log
-    ├── must-gather.logs
-    ├── quay-io-nirsof-gather-sha256-aa5b3469396e5fc9217a4ffb2cc88465c4dedb311aef072bc1556b2a34f1339c
-    │   ├── cluster
-    │   ├── gather.log
-    │   ├── gather.logs
-    │   ├── namespaces
-    │   └── version
-    └── timestamp
-```
+> Make your repo public to use it for gathering.
 
 ## Sending pull requests
 
@@ -174,5 +104,5 @@ Tips:
 
 - Keep pull requests small
 - Each commit should have one logical change
-- Before sending a pull request rebase on upstream main branch.
-- Test your changes with local and remote clusters
+- Before sending a pull request rebase on upstream main branch
+- Test your changes with `make test`
