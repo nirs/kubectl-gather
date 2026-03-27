@@ -27,10 +27,12 @@ Install the require packages:
 brew install git go make podman kubectl kind
 ```
 
-To build container images or run tests using kind you need to start the podman machine:
+To build container images or run tests using kind you need to create
+a podman machine with enough memory. The default 2GB is not enough
+when running kind clusters and building container images:
 
 ```console
-podman machine init
+podman machine init --memory 3072
 podman machine start
 ```
 
