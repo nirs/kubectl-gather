@@ -21,7 +21,8 @@ COPY main.go main.go
 # Build env variables:
 # - CGO_ENABLED=0: Disable CGO to avoid dependencies on libc. Built image can
 #   be built on latest Fedora and run on old RHEL.
-RUN CGO_ENABLED=0 go build -ldflags="${ldflags}"
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -ldflags="${ldflags}"
 
 FROM docker.io/library/alpine:latest
 
