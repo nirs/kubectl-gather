@@ -23,6 +23,17 @@ var createCmd = &cobra.Command{
 	},
 }
 
+var loadCmd = &cobra.Command{
+	Use:   "load archive",
+	Short: "Load image archive into e2e clusters",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := clusters.Load(args[0]); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete the e2e environment",
@@ -34,8 +45,9 @@ var deleteCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(createCmd)
+	rootCmd.AddCommand(deleteCmd)
+	rootCmd.AddCommand(loadCmd)
 }
 
 func main() {

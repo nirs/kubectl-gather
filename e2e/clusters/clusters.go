@@ -42,6 +42,21 @@ func Create() error {
 	return nil
 }
 
+func Load(archive string) error {
+	log.Printf("Loading image %q", archive)
+	if err := execute(func(name string) error {
+		cmd := exec.Command(
+			"kind", "load", "image-archive", archive,
+			"--name", kindName(name),
+		)
+		return commands.Run(cmd)
+	}, Names); err != nil {
+		return err
+	}
+	log.Print("Image loaded")
+	return nil
+}
+
 func Delete() error {
 	log.Print("Deleting clusters")
 	if err := execute(deleteCluster, Names); err != nil {
