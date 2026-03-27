@@ -83,10 +83,11 @@ func createCluster(name string) error {
 		log.Printf("Using existing cluster: %q", name)
 		return nil
 	}
+	config := clusterKubeconfig(name)
 	cmd := exec.Command(
 		"kind", "create", "cluster",
 		"--name", kindName(name),
-		"--kubeconfig", clusterKubeconfig(name),
+		"--kubeconfig", config,
 		"--wait", "60s",
 	)
 	return commands.Run(cmd)
