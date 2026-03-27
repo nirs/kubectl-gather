@@ -36,6 +36,7 @@ ldflags := -s -w \
 	test \
 	clean \
 	e2e-clusters \
+	e2e-container \
 	e2e-deploy \
 	e2e-undeploy \
 	container \
@@ -50,7 +51,7 @@ lint:
 	golangci-lint run ./...
 	cd e2e && golangci-lint run ./...
 
-test: kubectl-gather e2e-deploy
+test: kubectl-gather e2e-deploy e2e-container
 	cd e2e && go test . -v -count=1
 
 clean:
@@ -133,3 +134,13 @@ e2e-undeploy: e2e-clusters
 	kubectl wait ns test-common --for delete --context kind-c2
 	kubectl wait ns test-c1 --for delete --context kind-c1
 	kubectl wait ns test-c2 --for delete --context kind-c2
+
+# Build native container image and load it into e2e kind clusters.
+e2e-container: e2e-clusters
+	podman build \
+		--tag $(image) \
+		--build-arg ldflags="$(ldflags)" \
+		--build-arg go_version="$(go_version)" \
+		.
+	podman save -o e2e/out/$(IMAGE)-kind.tar $(image)
+	cd e2e && go run ./cmd load out/$(IMAGE)-kind.tar
