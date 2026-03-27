@@ -16,8 +16,9 @@ package := github.com/nirs/kubectl-gather/pkg/gather
 image := $(REGISTRY)/$(REPO)/$(IMAGE):$(TAG)
 image_arch = $(image)-$(GOARCH)
 
-# Lazy evaluation - resolved only when used by targets that need it.
-go_version = $(shell go list -f "{{.GoVersion}}" -m)
+# Use the toolchain version for the container base image so go build inside
+# the container does not need to download a newer toolchain.
+go_version = $(shell go mod edit -json | jq -r .Toolchain | sed 's/^go//')
 
 # % go build -ldflags="-help"
 #  -s	disable symbol table
