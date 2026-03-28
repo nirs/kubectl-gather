@@ -34,8 +34,33 @@ func TestOutput(t *testing.T) {
 		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1))
 		testOutputReader(t, reader)
 	})
-}
 
+	t.Run("remote", func(t *testing.T) {
+		if _, err := exec.LookPath("oc"); err != nil {
+			t.Skip("oc not found, skipping remote test")
+		}
+
+		outputDir := "out/test-output-remote"
+		os.RemoveAll(outputDir)
+
+		cmd := exec.Command(
+			kubectlGather,
+			"--contexts", clusters.C1,
+			"--kubeconfig", clusters.Kubeconfig(),
+			"--remote",
+			"--directory", outputDir,
+		)
+		if err := commands.Run(cmd); err != nil {
+			t.Fatal(err)
+		}
+
+		dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
+		t.Logf("Data root: %s", dataRoot)
+
+		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1, dataRoot))
+		testOutputReader(t, reader)
+	})
+}
 
 func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 	t.Helper()
