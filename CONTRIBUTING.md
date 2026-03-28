@@ -111,29 +111,29 @@ make container PLATFORMS=linux/arm64
 
 ## Push a container image to your registry
 
-The release workflow pushes the container image automatically. You
-should not need to push manually. If you do, push to your own registry:
+The release workflow pushes the container image to ghcr.io automatically.
+You should not need to push manually. If you do, create a GitHub Personal
+Access Token (classic) with `write:packages` scope. Fine-grained tokens
+do not support GitHub Packages yet.
 
-1. Build the container for your repo:
+Create a token at https://github.com/settings/tokens/new?scopes=write:packages
 
-   ```console
-   make container REPO=my-quay-user
-   ```
-
-2. Login to the registry:
+1. Login to ghcr.io using the PAT as the password:
 
    ```console
-   podman login quay.io -u my-quay-user
+   podman login ghcr.io -u my-github-user
    ```
 
-3. Push to your repo:
+2. Push to your ghcr.io repo:
 
    ```console
-   make container-push REPO=my-quay-user
+   make container-push REPO=my-github-user
    ```
 
-> [!IMPORTANT]
-> Make your repo public so `kubectl-gather --remote` can pull the image.
+3. If this is your first push, make the package public so
+   `kubectl-gather --remote` can pull it. GHCR packages are private
+   by default. Change the visibility at
+   `https://github.com/users/<username>/packages/container/gather/settings`.
 
 ## Sending pull requests
 
