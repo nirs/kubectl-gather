@@ -7,6 +7,6 @@ base="/must-gather"
 
 mkdir -p "$base"
 
-printf "gather\n$(kubectl-gather --version)\n" > "$base/version"
+kubectl-gather --must-gather-version > "$base/version"
 
 kubectl-gather --directory "$base" "$@"
