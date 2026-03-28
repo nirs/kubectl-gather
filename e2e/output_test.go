@@ -18,19 +18,27 @@ import (
 )
 
 func TestOutput(t *testing.T) {
-	outputDir := "out/test-output"
+	t.Run("local", func(t *testing.T) {
+		outputDir := "out/test-output-local"
 
-	cmd := exec.Command(
-		kubectlGather,
-		"--contexts", clusters.C1,
-		"--kubeconfig", clusters.Kubeconfig(),
-		"--directory", outputDir,
-	)
-	if err := commands.Run(cmd); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
-	}
+		cmd := exec.Command(
+			kubectlGather,
+			"--contexts", clusters.C1,
+			"--kubeconfig", clusters.Kubeconfig(),
+			"--directory", outputDir,
+		)
+		if err := commands.Run(cmd); err != nil {
+			t.Fatal(err)
+		}
 
-	reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1))
+		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1))
+		testOutputReader(t, reader)
+	})
+}
+
+
+func testOutputReader(t *testing.T, reader *gather.OutputReader) {
+	t.Helper()
 
 	t.Run("deployment", func(t *testing.T) {
 		name := "common-busybox"
@@ -108,7 +116,6 @@ func TestOutput(t *testing.T) {
 		if len(found) != 0 {
 			t.Errorf("expected empty slice, got %v", found)
 		}
-
 	})
 
 	t.Run("missing cluster scope", func(t *testing.T) {
