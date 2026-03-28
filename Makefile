@@ -55,6 +55,7 @@ lint:
 	cd e2e && golangci-lint run ./...
 
 test: kubectl-gather e2e-deploy e2e-container
+	rm -rf e2e/out/test-*
 	cd e2e && go test . -v -count=1
 
 clean:
