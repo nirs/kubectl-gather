@@ -10,6 +10,7 @@ REPO ?= nirsof
 IMAGE ?= gather
 TAG ?= $(version)
 GOARCH ?= $(shell go env GOARCH)
+PLATFORMS ?= linux/amd64,linux/arm64
 
 package := github.com/nirs/kubectl-gather/pkg/gather
 
@@ -66,10 +67,10 @@ clean:
 	podman images --quiet $(REGISTRY)/$(REPO)/$(IMAGE) | xargs --no-run-if-empty podman rmi --force
 	podman image prune --force
 
-# Build multiarch image locally using qemu emulation.
+# Build container image locally. Uses qemu emulation for non-native platforms.
 container:
 	podman build \
-		--platform=linux/amd64,linux/arm64 \
+		--platform=$(PLATFORMS) \
 		--manifest $(image) \
 		--build-arg ldflags="$(ldflags)" \
 		--build-arg go_version="$(go_version)" \
