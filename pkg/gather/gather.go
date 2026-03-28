@@ -36,7 +36,15 @@ const workQueueSize = 6
 
 // Replaced during build with actual values.
 var Version = "latest"
+var Commit = "unknown"
 var Image = "quay.io/nirsof/gather:latest"
+
+// VersionInfo describes the gather build.
+type VersionInfo struct {
+	Version string `json:"version"`
+	Commit  string `json:"commit"`
+	Image   string `json:"image"`
+}
 
 type Options struct {
 	Kubeconfig string
