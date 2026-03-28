@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ARG go_version
-ARG ldflags
 
 FROM docker.io/library/golang:${go_version} as builder
 
@@ -17,6 +16,8 @@ RUN go mod download
 COPY cmd cmd
 COPY pkg pkg
 COPY main.go main.go
+
+ARG ldflags
 
 # Build env variables:
 # - CGO_ENABLED=0: Disable CGO to avoid dependencies on libc. Built image can
