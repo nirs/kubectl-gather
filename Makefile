@@ -57,6 +57,10 @@ test: kubectl-gather e2e-deploy e2e-container
 clean:
 	cd e2e && go run ./cmd delete
 	rm -rf e2e/out
+	# Each build creates a new tagged image; remove all of them and prune
+	# the dangling intermediate layers.
+	podman images --quiet $(REGISTRY)/$(REPO)/$(IMAGE) | xargs --no-run-if-empty podman rmi --force
+	podman image prune --force
 
 # Build multiarch image locally using qemu emulation.
 container:
