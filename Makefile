@@ -20,6 +20,8 @@ image_arch = $(image)-$(GOARCH)
 # the container does not need to download a newer toolchain.
 go_version = $(shell go mod edit -json | jq -r .Toolchain | sed 's/^go//')
 
+commit := $(shell git rev-parse HEAD)
+
 # % go build -ldflags="-help"
 #  -s	disable symbol table
 #  -w	disable DWARF generation
@@ -27,6 +29,7 @@ go_version = $(shell go mod edit -json | jq -r .Toolchain | sed 's/^go//')
 #    	add string value definition of the form importpath.name=value
 ldflags := -s -w \
 	-X '$(package).Version=$(version)' \
+	-X '$(package).Commit=$(commit)' \
 	-X '$(package).Image=$(image)'
 
 .PHONY: \

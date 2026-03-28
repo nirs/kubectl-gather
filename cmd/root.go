@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"sigs.k8s.io/yaml"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
 )
@@ -65,7 +66,6 @@ var example = `  # Gather data from all namespaces in current context in my-kube
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
 	Short:   "Gather data from clusters",
-	Version: gather.Version,
 	Example: example,
 	Annotations: map[string]string{
 		cobra.CommandDisplayNameAnnotation: "kubectl gather",
@@ -110,8 +110,15 @@ func init() {
 	rootCmd.Flags().BoolVar(&mustGatherVersion, "must-gather-version", false,
 		"print must-gather version info and exit")
 
-	// Use plain, machine friendly version string.
-	rootCmd.SetVersionTemplate("{{.Version}}\n")
+	// Use rich yaml version.
+	v := gather.VersionInfo{
+		Version: gather.Version,
+		Commit:  gather.Commit,
+		Image:   gather.Image,
+	}
+	data, _ := yaml.Marshal(v)
+	rootCmd.Version = string(data)
+	rootCmd.SetVersionTemplate("{{.Version}}")
 }
 
 func runGather(cmd *cobra.Command, args []string) {
