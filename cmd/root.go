@@ -31,6 +31,7 @@ var salt string
 var parsedSalt gather.Salt
 var verbose bool
 var logFormat string
+var mustGatherVersion bool
 var log *zap.SugaredLogger
 
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
@@ -106,12 +107,19 @@ func init() {
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 	rootCmd.Flags().StringVar(&logFormat, "log-format", "text", "Set the logging format [text, json]")
+	rootCmd.Flags().BoolVar(&mustGatherVersion, "must-gather-version", false,
+		"print must-gather version info and exit")
 
 	// Use plain, machine friendly version string.
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 }
 
 func runGather(cmd *cobra.Command, args []string) {
+	if mustGatherVersion {
+		fmt.Printf("kubectl-gather\nv%s\n", gather.Version)
+		return
+	}
+
 	if directory == "" {
 		directory = defaultGatherDirectory()
 	}
