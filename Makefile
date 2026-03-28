@@ -5,8 +5,8 @@
 # 0.5.1-1-gcf79160 when building without tag (development)
 version := $(shell git describe --tags | sed -e 's/^v//')
 
-REGISTRY ?= quay.io
-REPO ?= nirsof
+REGISTRY ?= ghcr.io
+REPO ?= nirs
 IMAGE ?= gather
 TAG ?= $(version)
 GOARCH ?= $(shell go env GOARCH)
