@@ -83,18 +83,52 @@ To delete the test clusters and clean up test outputs:
 make clean
 ```
 
-## Building and pushing container images
+## Build a container image
 
-Container images are built and published by CI. For local testing with
-`--remote`, build and push a multi-arch image to your own registry:
+To build a container image for testing run:
 
 ```console
-make container REPO=my-quay-user
-make container-push
+make container
 ```
 
+This builds for both `linux/amd64` and `linux/arm64` using QEMU
+emulation for the non-native platform. To build for a single
+platform:
+
+```console
+make container PLATFORMS=linux/arm64
+```
+
+> [!NOTE]
+> QEMU emulation may not work with all Go versions. Go 1.26 is known
+> to crash under QEMU user-mode emulation. Use `PLATFORMS` to build
+> only for your native architecture as a workaround.
+
+## Push a container image to your registry
+
+The release workflow pushes the container image automatically. You
+should not need to push manually. If you do, push to your own registry:
+
+1. Build the container for your repo:
+
+   ```console
+   make container REPO=my-quay-user
+   ```
+
+2. Login to the registry:
+
+   ```console
+   podman login quay.io -u my-quay-user
+   ```
+
+3. Push to your repo:
+
+   ```console
+   make container-push REPO=my-quay-user
+   ```
+
 > [!IMPORTANT]
-> Make your repo public to use it for gathering.
+> Make your repo public so `kubectl-gather --remote` can pull the image.
 
 ## Sending pull requests
 
