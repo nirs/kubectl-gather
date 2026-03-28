@@ -91,8 +91,8 @@ var (
 	}
 )
 
-func TestGather(t *testing.T) {
-	outputDir := "out/test-gather"
+func TestGatherLocal(t *testing.T) {
+	outputDir := "out/test-gather-local"
 
 	cmd := exec.Command(
 		kubectlGather,
@@ -123,6 +123,29 @@ func TestGatherClusterTrue(t *testing.T) {
 
 	validateGatherAll(t, validate.New(outputDir))
 }
+
+func TestGatherRemote(t *testing.T) {
+	if _, err := exec.LookPath("oc"); err != nil {
+		t.Skip("oc not found, skipping remote test")
+	}
+
+	outputDir := "out/test-gather-remote"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--kubeconfig", clusters.Kubeconfig(),
+		"--remote",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd); err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", err)
+	}
+
+	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
+	t.Logf("Data root: %s", dataRoot)
+
+	validateGatherAll(t, validate.New(outputDir).WithDataRoot(dataRoot))
 }
 
 func TestGatherClusterFalse(t *testing.T) {
