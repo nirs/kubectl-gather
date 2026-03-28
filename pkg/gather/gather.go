@@ -37,7 +37,7 @@ const workQueueSize = 6
 // Replaced during build with actual values.
 var Version = "devel"
 var Commit = "unknown"
-var Image = "quay.io/nirsof/gather:devel"
+var Image = "ghcr.io/nirs/gather:devel"
 
 // VersionInfo describes the gather build.
 type VersionInfo struct {
