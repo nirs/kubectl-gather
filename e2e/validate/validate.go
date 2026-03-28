@@ -8,13 +8,33 @@ import (
 	"testing"
 )
 
-func Exists(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
-	if !PathExists(t, outputDir) {
-		t.Fatalf("output directory %q does not exist", outputDir)
+// Validator checks that gathered resources exist or are missing in the output
+// directory. For remote gather, the data root (image digest directory) is
+// inserted between the cluster directory and the resource patterns.
+type Validator struct {
+	outputDir string
+	dataRoot  string
+}
+
+func New(outputDir string) *Validator {
+	return &Validator{outputDir: outputDir}
+}
+
+// WithDataRoot returns a new Validator with the given data root for remote
+// gather output where resources are nested under an image digest directory.
+func (v *Validator) WithDataRoot(dataRoot string) *Validator {
+	return &Validator{outputDir: v.outputDir, dataRoot: dataRoot}
+}
+
+func (v *Validator) Exists(t *testing.T, clusterNames []string, resources ...[]string) {
+	t.Helper()
+
+	if !PathExists(t, v.outputDir) {
+		t.Fatalf("output directory %q does not exist", v.outputDir)
 	}
 
 	for _, cluster := range clusterNames {
-		clusterDir := filepath.Join(outputDir, cluster)
+		clusterDir := filepath.Join(v.outputDir, cluster, v.dataRoot)
 		if !PathExists(t, clusterDir) {
 			t.Fatalf("cluster directory %q does not exist", clusterDir)
 		}
@@ -31,13 +51,15 @@ func Exists(t *testing.T, outputDir string, clusterNames []string, resources ...
 	}
 }
 
-func Missing(t *testing.T, outputDir string, clusterNames []string, resources ...[]string) {
-	if !PathExists(t, outputDir) {
-		t.Fatalf("output directory %q does not exist", outputDir)
+func (v *Validator) Missing(t *testing.T, clusterNames []string, resources ...[]string) {
+	t.Helper()
+
+	if !PathExists(t, v.outputDir) {
+		t.Fatalf("output directory %q does not exist", v.outputDir)
 	}
 
 	for _, cluster := range clusterNames {
-		clusterDir := filepath.Join(outputDir, cluster)
+		clusterDir := filepath.Join(v.outputDir, cluster, v.dataRoot)
 		for _, pattern := range slices.Concat(resources...) {
 			resource := filepath.Join(clusterDir, pattern)
 			matches, err := filepath.Glob(resource)
