@@ -35,7 +35,7 @@ var (
 	}
 
 	c1ClusterNodes = []string{
-		"cluster/nodes/c1-control-plane.yaml",
+		"cluster/nodes/c1.yaml",
 	}
 
 	c1ClusterResources = []string{
@@ -61,7 +61,7 @@ var (
 	}
 
 	c2ClusterNodes = []string{
-		"cluster/nodes/c2-control-plane.yaml",
+		"cluster/nodes/c2.yaml",
 	}
 
 	c2ClusterResources = []string{
@@ -97,7 +97,6 @@ func TestGatherLocal(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", outputDir,
 	)
 	if err := commands.Run(cmd); err != nil {
@@ -113,7 +112,6 @@ func TestGatherClusterTrue(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--cluster=true",
 		"--directory", outputDir,
 	)
@@ -134,7 +132,6 @@ func TestGatherRemote(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--remote",
 		"--directory", outputDir,
 	)
@@ -154,7 +151,6 @@ func TestGatherClusterFalse(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--cluster=false",
 		"--directory", outputDir,
 	)
@@ -204,7 +200,6 @@ func TestGatherEmptyNamespaces(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces=", "",
 		"--directory", outputDir,
 	)
@@ -221,7 +216,6 @@ func TestGatherEmptyNamespacesClusterFalse(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces=", "",
 		"--cluster=false",
 		"--directory", outputDir,
@@ -239,7 +233,6 @@ func TestGatherEmptyNamespacesClusterTrue(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces=", "",
 		"--cluster=true",
 		"--directory", outputDir,
@@ -290,7 +283,6 @@ func TestGatherSpecificNamespaces(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1",
 		"--directory", outputDir,
 	)
@@ -307,7 +299,6 @@ func TestGatherSpecificNamespacesClusterFalse(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1",
 		"--cluster=false",
 		"--directory", outputDir,
@@ -325,7 +316,6 @@ func TestGatherSpecificNamespacesClusterTrue(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1",
 		"--cluster=true",
 		"--directory", outputDir,
@@ -370,7 +360,6 @@ func TestGatherAddonsLogs(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "logs",
 		"--directory", outputDir,
@@ -416,7 +405,6 @@ func TestGatherAddonsPVCs(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "pvcs",
 		"--directory", outputDir,
@@ -459,7 +447,6 @@ func TestGatherAddonsEmpty(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons=",
 		"--directory", outputDir,
@@ -509,7 +496,6 @@ func TestJSONLogs(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", outputDir,
 		"--log-format", "json",
 	)

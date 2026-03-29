@@ -1,59 +1,45 @@
 package clusters
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"slices"
-	"strings"
+	"runtime"
 	"sync"
 
 	"github.com/nirs/kubectl-gather/e2e/commands"
 )
 
 const (
-	C1 = "kind-c1"
-	C2 = "kind-c2"
-
-	outdir     = "out"
-	kubeconfig = "kubeconfig.yaml"
+	C1 = "c1"
+	C2 = "c2"
 )
 
 var Names = []string{C1, C2}
 
-func Kubeconfig() string {
-	return filepath.Join(outdir, kubeconfig)
-}
-
 func Create() error {
 	log.Print("Creating clusters")
-	if err := os.MkdirAll(outdir, 0o700); err != nil {
+	profiles, err := profilesStatus()
+	if err != nil {
 		return err
 	}
-	if err := execute(createCluster, Names); err != nil {
-		return err
+	var start []string
+	for _, name := range Names {
+		status := profiles[name]
+		switch status {
+		case "OK", "Running":
+			log.Printf("Using existing cluster %q", name)
+		case "", "Stopped":
+			start = append(start, name)
+		default:
+			return fmt.Errorf("cluster %q status is %q", name, status)
+		}
 	}
-	if err := createKubeconfig(); err != nil {
+	if err := execute(createCluster, start); err != nil {
 		return err
 	}
 	log.Print("Clusters created")
-	return nil
-}
-
-func Load(archive string) error {
-	log.Printf("Loading image %q", archive)
-	if err := execute(func(name string) error {
-		cmd := exec.Command(
-			"kind", "load", "image-archive", archive,
-			"--name", kindName(name),
-		)
-		return commands.Run(cmd)
-	}, Names); err != nil {
-		return err
-	}
-	log.Print("Image loaded")
 	return nil
 }
 
@@ -62,8 +48,19 @@ func Delete() error {
 	if err := execute(deleteCluster, Names); err != nil {
 		return err
 	}
-	_ = os.Remove(Kubeconfig())
 	log.Print("Clusters deleted")
+	return nil
+}
+
+func Load(archive string) error {
+	log.Printf("Loading image %q", archive)
+	if err := execute(func(name string) error {
+		cmd := exec.Command("minikube", "image", "load", archive, "--profile", name)
+		return commands.Run(cmd)
+	}, Names); err != nil {
+		return err
+	}
+	log.Print("Image loaded")
 	return nil
 }
 
@@ -90,71 +87,50 @@ func execute(fn func(name string) error, names []string) error {
 
 func createCluster(name string) error {
 	log.Printf("Creating cluster %q", name)
-	exists, err := clusterExists(name)
-	if err != nil {
-		return err
+	args := []string{"start", "--profile", name, "--memory", "3g"}
+	switch runtime.GOOS {
+	case "darwin":
+		args = append(args, "--driver", "vfkit")
+	case "linux":
+		args = append(args, "--driver", "podman")
 	}
-	if exists {
-		log.Printf("Using existing cluster: %q", name)
-		return nil
-	}
-	config := clusterKubeconfig(name)
-	cmd := exec.Command(
-		"kind", "create", "cluster",
-		"--name", kindName(name),
-		"--kubeconfig", config,
-		"--wait", "60s",
-	)
+	cmd := exec.Command("minikube", args...)
 	return commands.Run(cmd)
 }
 
 func deleteCluster(name string) error {
 	log.Printf("Deleting cluster %q", name)
-	config := clusterKubeconfig(name)
-	cmd := exec.Command(
-		"kind", "delete", "cluster",
-		"--name", kindName(name),
-		"--kubeconfig", config,
-	)
-	if err := commands.Run(cmd); err != nil {
-		return err
-	}
-	_ = os.Remove(config)
-	return nil
+	cmd := exec.Command("minikube", "delete", "--profile", name)
+	return commands.Run(cmd)
 }
 
-func createKubeconfig() error {
-	log.Printf("Creating kubconfigs %q", Kubeconfig())
-	var configs []string
-	for _, name := range Names {
-		configs = append(configs, clusterKubeconfig(name))
-	}
-	cmd := exec.Command("kubectl", "config", "view", "--flatten")
-	cmd.Env = append(os.Environ(), "KUBECONFIG="+strings.Join(configs, ":"))
-	log.Printf("Running %v", cmd)
-	data, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("failed to merge configs: %s: %s", err, commands.Stderr(err))
-	}
-	return os.WriteFile(Kubeconfig(), data, 0640)
+type profileInfo struct {
+	Name   string
+	Status string
 }
 
-func clusterExists(name string) (bool, error) {
-	cmd := exec.Command("kind", "get", "clusters")
+type profileList struct {
+	Valid   []profileInfo `json:"valid"`
+	Invalid []profileInfo `json:"invalid"`
+}
+
+func profilesStatus() (map[string]string, error) {
+	status := map[string]string{}
+	cmd := exec.Command("minikube", "profile", "list", "--output", "json")
 	log.Printf("Running %v", cmd)
 	out, err := cmd.Output()
 	if err != nil {
-		return false, fmt.Errorf("failed to get clusters: %s: %s", err, commands.Stderr(err))
+		return status, fmt.Errorf("failed to list profiles: %w: %s", err, commands.Stderr(err))
 	}
-	trimmed := strings.TrimSpace(string(out))
-	existing := strings.Split(trimmed, "\n")
-	return slices.Contains(existing, kindName(name)), nil
-}
-
-func kindName(name string) string {
-	return strings.TrimPrefix(name, "kind-")
-}
-
-func clusterKubeconfig(name string) string {
-	return filepath.Join(outdir, name+".yaml")
+	profiles := profileList{}
+	if err := json.Unmarshal(out, &profiles); err != nil {
+		return status, fmt.Errorf("failed to unmarshal profile list: %w", err)
+	}
+	for _, profile := range profiles.Valid {
+		status[profile.Name] = profile.Status
+	}
+	for _, profile := range profiles.Invalid {
+		status[profile.Name] = profile.Status
+	}
+	return status, nil
 }

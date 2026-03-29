@@ -130,24 +130,24 @@ e2e-clusters:
 	cd e2e && go run ./cmd create
 
 e2e-deploy: e2e-clusters
-	kubectl apply -k e2e/testdata/common --context kind-c1
-	kubectl apply -k e2e/testdata/common --context kind-c2
-	kubectl apply -k e2e/testdata/c1 --context kind-c1
-	kubectl apply -k e2e/testdata/c2 --context kind-c2
-	kubectl rollout status deploy common-busybox -n test-common --context kind-c1
-	kubectl rollout status deploy common-busybox -n test-common --context kind-c2
-	kubectl rollout status deploy c1-busybox -n test-c1 --context kind-c1
-	kubectl rollout status deploy c2-busybox -n test-c2 --context kind-c2
+	kubectl apply -k e2e/testdata/common --context c1
+	kubectl apply -k e2e/testdata/common --context c2
+	kubectl apply -k e2e/testdata/c1 --context c1
+	kubectl apply -k e2e/testdata/c2 --context c2
+	kubectl rollout status deploy common-busybox -n test-common --context c1
+	kubectl rollout status deploy common-busybox -n test-common --context c2
+	kubectl rollout status deploy c1-busybox -n test-c1 --context c1
+	kubectl rollout status deploy c2-busybox -n test-c2 --context c2
 
 e2e-undeploy: e2e-clusters
-	kubectl delete -k e2e/testdata/common --context kind-c1 --ignore-not-found --wait=false
-	kubectl delete -k e2e/testdata/common --context kind-c2 --ignore-not-found --wait=false
-	kubectl delete -k e2e/testdata/c1 --context kind-c1 --ignore-not-found --wait=false
-	kubectl delete -k e2e/testdata/c2 --context kind-c2 --ignore-not-found --wait=false
-	kubectl wait ns test-common --for delete --context kind-c1
-	kubectl wait ns test-common --for delete --context kind-c2
-	kubectl wait ns test-c1 --for delete --context kind-c1
-	kubectl wait ns test-c2 --for delete --context kind-c2
+	kubectl delete -k e2e/testdata/common --context c1 --ignore-not-found --wait=false
+	kubectl delete -k e2e/testdata/common --context c2 --ignore-not-found --wait=false
+	kubectl delete -k e2e/testdata/c1 --context c1 --ignore-not-found --wait=false
+	kubectl delete -k e2e/testdata/c2 --context c2 --ignore-not-found --wait=false
+	kubectl wait ns test-common --for delete --context c1
+	kubectl wait ns test-common --for delete --context c2
+	kubectl wait ns test-c1 --for delete --context c1
+	kubectl wait ns test-c2 --for delete --context c2
 
 # Build native container image and load it into e2e clusters.
 e2e-container: e2e-clusters
