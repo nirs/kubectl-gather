@@ -90,7 +90,7 @@ func createCluster(name string) error {
 	args := []string{"start", "--profile", name, "--memory", "3g"}
 	switch runtime.GOOS {
 	case "darwin":
-		args = append(args, "--driver", "vfkit")
+		args = append(args, "--driver", "vfkit", "--network", "vmnet-shared")
 	case "linux":
 		args = append(args, "--driver", "podman")
 	}

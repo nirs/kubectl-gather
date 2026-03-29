@@ -32,6 +32,7 @@ brew install \
    minikube \
    podman \
    vfkit \
+   vmnet-helper \
 ```
 
 Create podman machine and start it for building containers:
