@@ -39,6 +39,7 @@ ldflags := -s -w \
 	lint \
 	test \
 	clean \
+	e2e-build \
 	e2e-clusters \
 	e2e-container \
 	e2e-deploy \
@@ -55,17 +56,13 @@ lint:
 	golangci-lint run ./...
 	cd e2e && golangci-lint run ./...
 
-test: kubectl-gather e2e-deploy e2e-container
+test: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
 	cd e2e && go test . -v -count=1
 
 clean:
 	cd e2e && go run ./cmd delete
 	rm -rf e2e/out
-	# Each build creates a new tagged image; remove all of them and prune
-	# the dangling intermediate layers.
-	podman images --quiet $(REGISTRY)/$(REPO)/$(IMAGE) | xargs --no-run-if-empty podman rmi --force
-	podman image prune --force
 
 # Build container image locally. Uses qemu emulation for non-native platforms.
 container:
@@ -119,7 +116,15 @@ kubectl-gather:
 
 # End-to-end test targets.
 
-e2e-deploy e2e-undeploy: export KUBECONFIG = e2e/out/kubeconfig.yaml
+# Use a fixed "devel" image tag and minimal ldflags to maximize container
+# build cache reuse. The go defaults in gather.go match these values, so
+# no -X flags are needed.
+e2e_image := $(REGISTRY)/$(REPO)/$(IMAGE):devel
+e2e_ldflags := -s -w
+
+# Build kubectl-gather with default "devel" version for testing.
+e2e-build:
+	GO_TOOLCHAIN=auto CGO_ENABLED=0 go build -ldflags="$(e2e_ldflags)"
 
 e2e-clusters:
 	cd e2e && go run ./cmd create
@@ -144,12 +149,13 @@ e2e-undeploy: e2e-clusters
 	kubectl wait ns test-c1 --for delete --context kind-c1
 	kubectl wait ns test-c2 --for delete --context kind-c2
 
-# Build native container image and load it into e2e kind clusters.
+# Build native container image and load it into e2e clusters.
 e2e-container: e2e-clusters
 	podman build \
-		--tag $(image) \
-		--build-arg ldflags="$(ldflags)" \
+		--tag $(e2e_image) \
+		--build-arg ldflags="$(e2e_ldflags)" \
 		--build-arg go_version="$(go_version)" \
 		.
-	podman save -o e2e/out/$(IMAGE)-kind.tar $(image)
-	cd e2e && go run ./cmd load out/$(IMAGE)-kind.tar
+	mkdir -p e2e/out
+	podman save -o e2e/out/gather.tar $(e2e_image)
+	cd e2e && go run ./cmd load out/gather.tar

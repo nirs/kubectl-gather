@@ -35,9 +35,9 @@ const listResourcesLimit = 100
 const workQueueSize = 6
 
 // Replaced during build with actual values.
-var Version = "latest"
+var Version = "devel"
 var Commit = "unknown"
-var Image = "quay.io/nirsof/gather:latest"
+var Image = "quay.io/nirsof/gather:devel"
 
 // VersionInfo describes the gather build.
 type VersionInfo struct {
