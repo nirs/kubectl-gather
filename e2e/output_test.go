@@ -24,7 +24,6 @@ func TestOutput(t *testing.T) {
 		cmd := exec.Command(
 			kubectlGather,
 			"--contexts", clusters.C1,
-			"--kubeconfig", clusters.Kubeconfig(),
 			"--directory", outputDir,
 		)
 		if err := commands.Run(cmd); err != nil {
@@ -46,7 +45,6 @@ func TestOutput(t *testing.T) {
 		cmd := exec.Command(
 			kubectlGather,
 			"--contexts", clusters.C1,
-			"--kubeconfig", clusters.Kubeconfig(),
 			"--remote",
 			"--directory", outputDir,
 		)
@@ -163,7 +161,6 @@ func TestSecretSanitization(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--salt", saltB64,
 		"--directory", outputDir,
 	)
@@ -190,7 +187,6 @@ func TestSecretSanitizationRandomSalt(t *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--kubeconfig", clusters.Kubeconfig(),
 		"--directory", outputDir,
 	)
 	if err := commands.Run(cmd); err != nil {

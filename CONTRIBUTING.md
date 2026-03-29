@@ -16,7 +16,7 @@ installing the required version.
 Install additional tools:
 
 - *kubectl*: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
-- *kind*: https://kind.sigs.k8s.io/docs/user/quick-start/
+- *minikube*: https://github.com/kubernetes/minikube/releases/latest
 - *oc*: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/
 
 ### macOS
@@ -24,15 +24,20 @@ Install additional tools:
 Install the require packages:
 
 ```console
-brew install git go make podman kubectl kind
+brew install \
+   git \
+   go \
+   kubectl \
+   make \
+   minikube \
+   podman \
+   vfkit \
 ```
 
-To build container images or run tests using kind you need to create
-a podman machine with enough memory. The default 2GB is not enough
-when running kind clusters and building container images:
+Create podman machine and start it for building containers:
 
 ```console
-podman machine init --memory 3072
+podman machine init
 podman machine start
 ```
 
@@ -74,10 +79,10 @@ make
 make test
 ```
 
-This creates kind clusters, deploys test workloads, and runs all tests.
-On subsequent runs, existing clusters are reused.
+This creates clusters, deploys test workloads, and runs all tests. On
+subsequent runs, existing clusters are reused.
 
-To delete the test clusters and clean up test outputs:
+To delete the clusters and clean up test outputs:
 
 ```console
 make clean
