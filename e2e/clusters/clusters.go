@@ -88,7 +88,26 @@ func execute(fn func(name string) error, names []string) error {
 }
 
 func createCluster(name string) error {
-	log.Printf("Creating cluster %q", name)
+	if err := startCluster(name); err != nil {
+		return err
+	}
+	if err := configureDNS(name); err != nil {
+		return err
+	}
+	if err := verifyDNS(name); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteCluster(name string) error {
+	log.Printf("Deleting cluster %q", name)
+	return runMinikube(name, "delete")
+}
+
+// startCluster start the minikube cluster, creating it if it does not exist.
+func startCluster(name string) error {
+	log.Printf("Start cluster %q", name)
 	args := []string{"start", "--memory", "3g"}
 	switch runtime.GOOS {
 	case "darwin":
@@ -99,9 +118,41 @@ func createCluster(name string) error {
 	return runMinikube(name, args...)
 }
 
-func deleteCluster(name string) error {
-	log.Printf("Deleting cluster %q", name)
-	return runMinikube(name, "delete")
+// configureDNS configure the cluster to use public DNS server. This is required
+// only on macOS managed machines. Does nothing on Linux.
+//
+// On managed Macs, corporate security agents install network extensions that
+// silently discard DNS traffic from the vmnet bridge (192.168.105.0/24).
+// However, DNS traffic to public servers (e.g., 8.8.8.8) is forwarded via NAT
+// normally.
+//
+// We configure systemd-resolved in the minikube VM with two settings:
+//
+//  1. Public DNS servers that are reachable from the VM, bypassing the host's
+//     broken DNS path.
+//
+//  2. Routing domain (eth0 "~.") The "~." syntax tells systemd-resolved to
+//     route ALL DNS queries through eth0's DNS servers.  Without this,
+//     systemd-resolved might still try other interfaces' DNS servers.
+func configureDNS(name string) error {
+	if runtime.GOOS == "linux" {
+		return nil
+	}
+	log.Printf("Configuring DNS in cluster %q", name)
+	script := `\
+resolvectl dns eth0 8.8.8.8 1.1.1.1
+resolvectl domain eth0 "~."
+resolvectl flush-caches`
+	command := fmt.Sprintf("sudo bash -o errexit -c '%s'", script)
+	return runMinikube(name, "ssh", "--", command)
+}
+
+// verifyDNS ensures that DNS works in the cluster, failing if not. Required on
+// macOS to verify that our configuration works, but good idea on Linux, since
+// broken DNS will break the tests.
+func verifyDNS(name string) error {
+	log.Printf("Verifying DNS in cluster %q", name)
+	return runMinikube(name, "ssh", "--", "resolvectl", "query", "google.com")
 }
 
 type profileInfo struct {
