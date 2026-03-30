@@ -115,7 +115,7 @@ func startCluster(name string) error {
 	case "darwin":
 		args = append(args, "--driver", "vfkit", "--network", "vmnet-shared")
 	case "linux":
-		args = append(args, "--driver", "podman")
+		args = append(args, "--driver", "docker")
 	}
 	return runMinikube(name, args...)
 }
