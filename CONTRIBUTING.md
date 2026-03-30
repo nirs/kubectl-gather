@@ -9,15 +9,21 @@ Install required packages:
 ```console
 sudo dnf install git golang make podman
 ```
-Check required go version in go.mod. If your distro version is too old, see
-[Managing Go installations](https://go.dev/doc/manage-install) for info on
-installing the required version.
 
 Install additional tools:
 
+- *docker*: https://docs.docker.com/engine/install/fedora/.
 - *kubectl*: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
 - *minikube*: https://github.com/kubernetes/minikube/releases/latest
 - *oc*: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/
+
+Notes:
+
+- Make sure to add your user to the docker group so minikube can use docker
+  without sudo.
+- Check required go version in go.mod. If your distro version is too old, see
+  [Managing Go installations](https://go.dev/doc/manage-install) for info on
+  installing the required version.
 
 ### macOS
 
