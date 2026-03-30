@@ -9,5 +9,8 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
+  claimRef:
+    name: CLAIM_NAME
+    namespace: CLAIM_NAMESPACE
   hostPath:
     path: MOUNT_PATH
