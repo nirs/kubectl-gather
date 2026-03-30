@@ -4,11 +4,17 @@ resources:
 namePrefix: common-
 namespace: test-common
 patches:
-  # Patch the mount point to match the name prefix.
   - target:
       kind: PersistentVolume
       name: pv1
     patch: |-
+      # Patch the mount point to match the name prefix.
       - op: replace
         path: /spec/hostPath/path
         value: /mnt/common-pv1
+      # Pin the PV to the correct PVC to prevent random cross-binding.
+      - op: replace
+        path: /spec/claimRef
+        value:
+          name: common-pvc1
+          namespace: test-common
