@@ -91,11 +91,13 @@ func createCluster(name string) error {
 	if err := startCluster(name); err != nil {
 		return err
 	}
-	if err := configureDNS(name); err != nil {
-		return err
-	}
-	if err := verifyDNS(name); err != nil {
-		return err
+	if runtime.GOOS == "darwin" {
+		if err := configureDNS(name); err != nil {
+			return err
+		}
+		if err := verifyDNS(name); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -118,8 +120,8 @@ func startCluster(name string) error {
 	return runMinikube(name, args...)
 }
 
-// configureDNS configure the cluster to use public DNS server. This is required
-// only on macOS managed machines. Does nothing on Linux.
+// configureDNS configure the cluster to use public DNS server. Required only on
+// managed macOS machines, but harmless on unmanaged machines.
 //
 // On managed Macs, corporate security agents install network extensions that
 // silently discard DNS traffic from the vmnet bridge (192.168.105.0/24).
@@ -135,9 +137,6 @@ func startCluster(name string) error {
 //     route ALL DNS queries through eth0's DNS servers.  Without this,
 //     systemd-resolved might still try other interfaces' DNS servers.
 func configureDNS(name string) error {
-	if runtime.GOOS == "linux" {
-		return nil
-	}
 	log.Printf("Configuring DNS in cluster %q", name)
 	script := `\
 resolvectl dns eth0 8.8.8.8 1.1.1.1
@@ -148,8 +147,8 @@ resolvectl flush-caches`
 }
 
 // verifyDNS ensures that DNS works in the cluster, failing if not. Required on
-// macOS to verify that our configuration works, but good idea on Linux, since
-// broken DNS will break the tests.
+// managed macOS machines to verify that our configuration works. Does not work
+// on non-vm drivers on Linux.
 func verifyDNS(name string) error {
 	log.Printf("Verifying DNS in cluster %q", name)
 	return runMinikube(name, "ssh", "--", "resolvectl", "query", "google.com")
