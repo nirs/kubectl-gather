@@ -1,8 +1,11 @@
 package clusters
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"runtime"
@@ -55,8 +58,7 @@ func Delete() error {
 func Load(archive string) error {
 	log.Printf("Loading image %q", archive)
 	if err := execute(func(name string) error {
-		cmd := exec.Command("minikube", "image", "load", archive, "--profile", name)
-		return commands.Run(cmd)
+		return runMinikube(name, "image", "load", archive)
 	}, Names); err != nil {
 		return err
 	}
@@ -87,21 +89,19 @@ func execute(fn func(name string) error, names []string) error {
 
 func createCluster(name string) error {
 	log.Printf("Creating cluster %q", name)
-	args := []string{"start", "--profile", name, "--memory", "3g"}
+	args := []string{"start", "--memory", "3g"}
 	switch runtime.GOOS {
 	case "darwin":
 		args = append(args, "--driver", "vfkit", "--network", "vmnet-shared")
 	case "linux":
 		args = append(args, "--driver", "podman")
 	}
-	cmd := exec.Command("minikube", args...)
-	return commands.Run(cmd)
+	return runMinikube(name, args...)
 }
 
 func deleteCluster(name string) error {
 	log.Printf("Deleting cluster %q", name)
-	cmd := exec.Command("minikube", "delete", "--profile", name)
-	return commands.Run(cmd)
+	return runMinikube(name, "delete")
 }
 
 type profileInfo struct {
@@ -133,4 +133,35 @@ func profilesStatus() (map[string]string, error) {
 		status[profile.Name] = profile.Status
 	}
 	return status, nil
+}
+
+func runMinikube(name string, args ...string) error {
+	cmd_args := []string{"--profile", name}
+	cmd_args = append(cmd_args, args...)
+	cmd := exec.Command("minikube", cmd_args...)
+	log.Printf("[%s] Running %s", name, cmd)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	pipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	reader := bufio.NewReader(pipe)
+	for {
+		line, _, err := reader.ReadLine()
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("[%s] Failed to read from command stdout: %s", name, err)
+			}
+			break
+		}
+		log.Printf("[%s] %s", name, string(line))
+	}
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("%w: %s", err, stderr.String())
+	}
+	return nil
 }
