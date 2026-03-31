@@ -27,12 +27,13 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM docker.io/library/alpine:latest
 
-# Required for must-gather: rsync, bash
+# Required for must-gather: rsync, bash, setsid (util-linux)
 # Required for kubectl-gather: tar, kubectl
 RUN apk add --no-cache \
         bash \
         rsync \
         tar \
+        util-linux \
     && apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
         kubectl \
     && mkdir -p licenses
