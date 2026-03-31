@@ -30,7 +30,7 @@ jobs:
           version: latest
 
   build-matrix:
-    name: Build binaries
+    name: Build (${{ matrix.goos }}-${{ matrix.goarch }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
