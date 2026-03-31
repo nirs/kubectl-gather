@@ -51,3 +51,67 @@ jobs:
           cache: false
       - name: Build binary
         run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} make
+
+  e2e:
+    name: E2E (${{ matrix.goos }}-${{ matrix.goarch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-24.04
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+      - name: Create build tag
+        run: git tag latest
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install minikube
+        run: |
+          curl --fail --silent --show-error --location --output minikube \
+              https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-${{ matrix.goarch }}
+          sudo install minikube /usr/local/bin/
+          minikube version
+      - name: Install oc
+        run: |
+          url="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux"
+          if [ "${{ matrix.goarch }}" != "amd64" ]; then
+              url="${url}-${{ matrix.goarch }}"
+          fi
+          curl --fail --silent --show-error --location --output oc.tar.gz "${url}.tar.gz"
+          tar xzf oc.tar.gz oc
+          sudo install oc /usr/local/bin/
+          oc version --client
+      - name: Run e2e tests
+        run: make test
+      # Tar manually to work around github limitations with special characters
+      # (:) in file names, and getting much smaller archives compared with zip.
+      # https://github.com/actions/upload-artifact/issues/546
+      - name: Archive test artifacts
+        if: always()
+        run: |
+          find e2e/out -maxdepth 1 -name 'test-*' > artifacts.txt
+          tar --create \
+              --gzip \
+              --file kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
+              --transform "s|^|kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}/|" \
+              --files-from artifacts.txt
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          compression-level: 0
+          retention-days: 15
+      - name: Delete clusters
+        if: always()
+        run: make clean
