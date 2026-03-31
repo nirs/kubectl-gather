@@ -102,7 +102,7 @@ jobs:
           tar --create \
               --gzip \
               --file kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
-              --transform "s|^|kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}/|" \
+              --transform "s|e2e/out/|kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}/|" \
               --files-from artifacts.txt
       - name: Upload test artifacts
         if: always()
