@@ -588,6 +588,21 @@ A `kubectl-gather.nirs.github.com/sanitized` annotation is added to
 each sanitized secret with the base64-encoded salt. The salt can be
 used to verify the original secret hash value.
 
+Example sanitized secret:
+
+```yaml
+apiVersion: v1
+data:
+  AWS_ACCESS_KEY_ID: gu0xORLNeFqMRH0DSUpjIbSs3P0P28gG6+MdPbHHUxo=
+  AWS_SECRET_ACCESS_KEY: RL48ILSpQlWV+bASMHSd4n4iUuq5Lf6e1dj+WSMbtKE=
+kind: Secret
+metadata:
+  annotations:
+    kubectl-gather.nirs.github.com/sanitized: zEdexb4iV78Arm9PrF7MTw==
+  creationTimestamp: "2026-03-25T06:49:34Z"
+...
+```
+
 By default a random salt is generated. To use a specific salt, use the
 `--salt` flag with `--remote` to ensure all remote clusters use the
 same salt.
