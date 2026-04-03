@@ -5,7 +5,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/nirs/kubectl-gather/e2e/clusters"
 	"github.com/nirs/kubectl-gather/e2e/commands"
@@ -525,6 +527,57 @@ func TestGatherTimeout(t *testing.T) {
 	}
 	if !strings.Contains(output, "results are partial") {
 		t.Errorf("expected stderr to contain %q, got:\n%s", "results are partial", output)
+	}
+}
+
+func TestGatherSignal(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		gather string
+		sig    syscall.Signal
+	}{
+		{"local-sigint", "local", syscall.SIGINT},
+		{"local-sigterm", "local", syscall.SIGTERM},
+		{"remote-sigint", "remote", syscall.SIGINT},
+		{"remote-sigterm", "remote", syscall.SIGTERM},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.gather == "remote" {
+				if _, err := exec.LookPath("oc"); err != nil {
+					t.Skip("oc not found, skipping remote test")
+				}
+				t.Cleanup(func() { deleteMustGatherNamespaces(t) })
+			}
+
+			args := []string{
+				"--contexts", strings.Join(clusters.Names, ","),
+				"--directory", "out/test-gather-signal-" + tc.name,
+			}
+			if tc.gather == "remote" {
+				args = append(args, "--remote")
+			}
+
+			var stderr bytes.Buffer
+			c := commands.New(kubectlGather, args...)
+			c.Stderr = &stderr
+
+			if err := c.Start(); err != nil {
+				t.Fatal(err)
+			}
+
+			time.AfterFunc(200*time.Millisecond, func() {
+				c.Process().Signal(tc.sig)
+			})
+
+			if err := c.Wait(); err == nil {
+				t.Fatal("kubectl-gather should fail on signal, but it succeeded")
+			}
+
+			output := stderr.String()
+			if !strings.Contains(output, "Gather was cancelled") {
+				t.Errorf("expected stderr to contain %q, got:\n%s", "Gather was cancelled", output)
+			}
+		})
 	}
 }
 
