@@ -21,13 +21,13 @@ func TestOutput(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
 		outputDir := "out/test-output-local"
 
-		cmd := exec.Command(
+		cmd := commands.New(
 			kubectlGather,
 			"--contexts", clusters.C1,
 			"--directory", outputDir,
 			"--timeout", timeoutLocal.String(),
 		)
-		if _, err := commands.Run(cmd); err != nil {
+		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -44,14 +44,14 @@ func TestOutput(t *testing.T) {
 		outputDir := "out/test-output-remote"
 		os.RemoveAll(outputDir)
 
-		cmd := exec.Command(
+		cmd := commands.New(
 			kubectlGather,
 			"--contexts", clusters.C1,
 			"--remote",
 			"--directory", outputDir,
 			"--timeout", timeoutRemote.String(),
 		)
-		if _, err := commands.Run(cmd); err != nil {
+		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -161,14 +161,14 @@ func TestSecretSanitization(t *testing.T) {
 	salt := gather.RandomSalt()
 	saltB64 := base64.StdEncoding.EncodeToString(salt[:])
 
-	cmd := exec.Command(
+	cmd := commands.New(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--salt", saltB64,
 		"--directory", outputDir,
 		"--timeout", timeoutLocal.String(),
 	)
-	if _, err := commands.Run(cmd); err != nil {
+	if err := cmd.Run(); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
@@ -188,13 +188,13 @@ func TestSecretSanitization(t *testing.T) {
 func TestSecretSanitizationRandomSalt(t *testing.T) {
 	outputDir := "out/test-secret-sanitization-random"
 
-	cmd := exec.Command(
+	cmd := commands.New(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 		"--timeout", timeoutLocal.String(),
 	)
-	if _, err := commands.Run(cmd); err != nil {
+	if err := cmd.Run(); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
