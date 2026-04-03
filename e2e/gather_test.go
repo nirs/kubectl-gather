@@ -489,6 +489,28 @@ func TestGatherAddonsEmpty(t *testing.T) {
 	)
 }
 
+func TestGatherTimeout(t *testing.T) {
+	outputDir := "out/test-gather-timeout"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--directory", outputDir,
+		"--timeout", "100ms",
+	)
+	stderr, err := commands.Run(cmd)
+	if err == nil {
+		t.Fatal("kubectl-gather should fail with timeout, but it succeeded")
+	}
+
+	if !strings.Contains(stderr, "deadline exceeded") {
+		t.Errorf("expected stderr to contain %q, got:\n%s", "deadline exceeded", stderr)
+	}
+	if !strings.Contains(stderr, "results are partial") {
+		t.Errorf("expected stderr to contain %q, got:\n%s", "results are partial", stderr)
+	}
+}
+
 func TestJSONLogs(t *testing.T) {
 	outputDir := "out/test-json-logs"
 	logPath := filepath.Join(outputDir, "gather.log")
