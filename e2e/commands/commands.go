@@ -2,20 +2,22 @@ package commands
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"log"
 	"os/exec"
 )
 
-// Run a command logging lines from stderr.
-func Run(cmd *exec.Cmd) error {
+// Run a command, logging and capturing lines from stderr.
+func Run(cmd *exec.Cmd) (string, error) {
 	log.Printf("Running %v", cmd)
+	var stderr bytes.Buffer
 	pipe, err := cmd.StderrPipe()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := cmd.Start(); err != nil {
-		return err
+		return "", err
 	}
 	reader := bufio.NewReader(pipe)
 	for {
@@ -27,8 +29,10 @@ func Run(cmd *exec.Cmd) error {
 			break
 		}
 		log.Print(string(line))
+		stderr.Write(line)
+		stderr.WriteByte('\n')
 	}
-	return cmd.Wait()
+	return stderr.String(), cmd.Wait()
 }
 
 func Stderr(err error) []byte {

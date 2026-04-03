@@ -26,7 +26,7 @@ func TestOutput(t *testing.T) {
 			"--contexts", clusters.C1,
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd); err != nil {
+		if _, err := commands.Run(cmd); err != nil {
 			t.Fatal(err)
 		}
 
@@ -48,7 +48,7 @@ func TestOutput(t *testing.T) {
 			"--remote",
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd); err != nil {
+		if _, err := commands.Run(cmd); err != nil {
 			t.Fatal(err)
 		}
 
@@ -164,7 +164,7 @@ func TestSecretSanitization(t *testing.T) {
 		"--salt", saltB64,
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd); err != nil {
+	if _, err := commands.Run(cmd); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
@@ -189,7 +189,7 @@ func TestSecretSanitizationRandomSalt(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd); err != nil {
+	if _, err := commands.Run(cmd); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
