@@ -39,6 +39,7 @@ func TestOutput(t *testing.T) {
 		if _, err := exec.LookPath("oc"); err != nil {
 			t.Skip("oc not found, skipping remote test")
 		}
+		t.Cleanup(func() { deleteMustGatherNamespaces(t) })
 
 		outputDir := "out/test-output-remote"
 		os.RemoveAll(outputDir)
