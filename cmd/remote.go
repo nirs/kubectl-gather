@@ -41,7 +41,14 @@ func remoteGather(ctx context.Context, clusterConfigs []*clusterConfig) {
 	close(errors)
 
 	for err := range errors {
-		log.Fatal(err)
+		switch err {
+		case context.DeadlineExceeded:
+			log.Fatal("Gather timed out")
+		case context.Canceled:
+			log.Fatal("Gather was cancelled")
+		default:
+			log.Fatalf("Gather failed: %s", err)
+		}
 	}
 
 	log.Infof("Gathered %d clusters in %.3f seconds",

@@ -79,7 +79,14 @@ func localGather(ctx context.Context, clusterConfigs []*clusterConfig) {
 
 	for r := range results {
 		if r.Err != nil {
-			log.Fatal(r.Err)
+			switch r.Err {
+			case context.DeadlineExceeded:
+				log.Fatal("Gather timed out")
+			case context.Canceled:
+				log.Fatal("Gather was cancelled")
+			default:
+				log.Fatalf("Gather failed: %s", r.Err)
+			}
 		}
 		count += r.Count
 	}
