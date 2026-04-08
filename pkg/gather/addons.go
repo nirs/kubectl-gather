@@ -4,6 +4,7 @@
 package gather
 
 import (
+	"context"
 	"net/http"
 	"slices"
 
@@ -13,6 +14,9 @@ import (
 )
 
 type AddonBackend interface {
+	// Context returns the gather context for this invocation.
+	Context() context.Context
+
 	// Config returns the rest config for this cluster that can be used to
 	// create a new client.
 	Config() *rest.Config

@@ -4,6 +4,7 @@
 package gather
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 )
 
 type RemoteCommand struct {
+	ctx       context.Context
 	pod       *corev1.Pod
 	opts      *Options
 	log       *zap.SugaredLogger
@@ -24,8 +26,8 @@ type RemoteCommand struct {
 
 var specialCharacters *regexp.Regexp
 
-func NewRemoteCommand(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger, directory string) *RemoteCommand {
-	return &RemoteCommand{pod: pod, opts: opts, log: log, directory: directory}
+func NewRemoteCommand(ctx context.Context, pod *corev1.Pod, opts *Options, log *zap.SugaredLogger, directory string) *RemoteCommand {
+	return &RemoteCommand{ctx: ctx, pod: pod, opts: opts, log: log, directory: directory}
 }
 
 func (c *RemoteCommand) Gather(command ...string) error {
@@ -53,7 +55,7 @@ func (c *RemoteCommand) Gather(command ...string) error {
 	}
 
 	defer writer.Close()
-	cmd := exec.Command("kubectl", args...)
+	cmd := exec.CommandContext(c.ctx, "kubectl", args...)
 	cmd.Stdout = writer
 
 	c.log.Debugf("Running command: %s", cmd)

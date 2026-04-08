@@ -67,10 +67,10 @@ func NewAgentPod(name string, client *kubernetes.Clientset, log *zap.SugaredLogg
 	return &AgentPod{Pod: &pod, Client: client, Log: log}
 }
 
-func (a *AgentPod) Create() error {
+func (a *AgentPod) Create(ctx context.Context) error {
 	a.Log.Debugf("Starting agent pod %q", a)
 	pod, err := a.Client.CoreV1().Pods(a.Pod.Namespace).
-		Create(context.TODO(), a.Pod, metav1.CreateOptions{})
+		Create(ctx, a.Pod, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -89,8 +89,8 @@ func (w *agentWatcher) WatchWithContext(ctx context.Context, opts metav1.ListOpt
 	return w.agent.Client.CoreV1().Pods(w.agent.Pod.Namespace).Watch(ctx, opts)
 }
 
-func (a *AgentPod) WaitUntilRunning() error {
-	ctx, cancel := context.WithTimeout(context.Background(), agentPodTimeoutSeconds*time.Second)
+func (a *AgentPod) WaitUntilRunning(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, agentPodTimeoutSeconds*time.Second)
 	defer cancel()
 
 	w := agentWatcher{agent: a}
@@ -121,13 +121,17 @@ func (a *AgentPod) WaitUntilRunning() error {
 		}
 	}
 
-	return fmt.Errorf("timeout waiting for agent pod %q running phase", a)
+	// RetryWatcher closes ResultChan without sending a watch.Error event when
+	// the context is cancelled or the deadline expires.
+	return fmt.Errorf("timeout waiting for agent pod %q running phase: %w", a, ctx.Err())
 }
 
+// Delete removes the agent pod from the cluster. Uses context.Background()
+// instead of the gather context so cleanup succeeds even after cancellation.
 func (a *AgentPod) Delete() {
 	a.Log.Debugf("Deleting agent pod %q", a)
 	err := a.Client.CoreV1().Pods(a.Pod.Namespace).
-		Delete(context.TODO(), a.Pod.Name, metav1.DeleteOptions{})
+		Delete(context.Background(), a.Pod.Name, metav1.DeleteOptions{})
 	if err != nil {
 		a.Log.Warnf("Cannot delete agent pod %q: %s", a, err)
 	}

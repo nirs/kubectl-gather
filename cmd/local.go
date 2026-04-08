@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ type result struct {
 	Err   error
 }
 
-func localGather(clusterConfigs []*clusterConfig) {
+func localGather(ctx context.Context, clusterConfigs []*clusterConfig) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
@@ -48,7 +49,7 @@ func localGather(clusterConfigs []*clusterConfig) {
 		go func() {
 			defer wg.Done()
 
-			g, err := gather.New(clusterConfig.Config, directory, options)
+			g, err := gather.New(ctx, clusterConfig.Config, directory, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
@@ -78,7 +79,14 @@ func localGather(clusterConfigs []*clusterConfig) {
 
 	for r := range results {
 		if r.Err != nil {
-			log.Fatal(r.Err)
+			switch r.Err {
+			case context.DeadlineExceeded:
+				log.Fatal("Gather timed out")
+			case context.Canceled:
+				log.Fatal("Gather was cancelled")
+			default:
+				log.Fatalf("Gather failed: %s", r.Err)
+			}
 		}
 		count += r.Count
 	}

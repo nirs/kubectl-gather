@@ -4,7 +4,6 @@
 package gather
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"time"
@@ -96,7 +95,7 @@ func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 
 	req := a.client.CoreV1().Pods(container.Namespace).GetLogs(container.Pod, opts)
 
-	src, err := req.Stream(context.TODO())
+	src, err := req.Stream(a.Context())
 	if err != nil {
 		// Getting the log is possible only if a container is running, but
 		// checking the container state before the call is racy. We get a

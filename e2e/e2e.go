@@ -1,13 +1,26 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubectlGather = "../kubectl-gather"
+
+// timeoutLocal for local gather tests to ensure tests fail quickly.
+const timeoutLocal = 5 * time.Second
+
+// timeoutRemote for remote gather tests, considering must-gather 10s polling.
+const timeoutRemote = 30 * time.Second
 
 // findDataRoot finds the image digest directory in a remote gather cluster
 // output. The directory name format depends on the oc version:
@@ -44,4 +57,38 @@ func findDataRoot(t *testing.T, clusterDir string) string {
 	}
 
 	return filepath.Base(filepath.Dir(matches[0]))
+}
+
+func busyboxPod(t *testing.T, client *kubernetes.Clientset) *corev1.Pod {
+	t.Helper()
+	pods, err := client.CoreV1().Pods("test-common").List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app=busybox",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pods.Items) == 0 {
+		t.Fatal("no busybox pods found in test-common namespace")
+	}
+	return &pods.Items[0]
+}
+
+func newClientset(t *testing.T, context string) *kubernetes.Clientset {
+	t.Helper()
+
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: context}
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return client
 }

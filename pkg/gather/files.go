@@ -5,6 +5,7 @@ package gather
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 )
 
 type RemoteDirectory struct {
+	ctx  context.Context
 	pod  *corev1.Pod
 	opts *Options
 	log  *zap.SugaredLogger
@@ -24,8 +26,8 @@ type RemoteDirectory struct {
 
 var tarFileChangedError *regexp.Regexp
 
-func NewRemoteDirectory(pod *corev1.Pod, opts *Options, log *zap.SugaredLogger) *RemoteDirectory {
-	return &RemoteDirectory{pod: pod, opts: opts, log: log}
+func NewRemoteDirectory(ctx context.Context, pod *corev1.Pod, opts *Options, log *zap.SugaredLogger) *RemoteDirectory {
+	return &RemoteDirectory{ctx: ctx, pod: pod, opts: opts, log: log}
 }
 
 func (d *RemoteDirectory) Gather(src string, dst string) error {
@@ -64,6 +66,10 @@ func (d *RemoteDirectory) Gather(src string, dst string) error {
 	// blocks forever.
 	localErr := localTar.Wait()
 	remoteErr := remoteTar.Wait()
+
+	if d.ctx.Err() != nil {
+		return fmt.Errorf("copying %q: %w", src, d.ctx.Err())
+	}
 
 	if remoteErr != nil {
 		stderr := remoteError.String()
@@ -104,7 +110,7 @@ func (d *RemoteDirectory) remoteTarCommand(src string) *exec.Cmd {
 	}
 	args = append(args, "--", "tar", "cf", "-", src)
 
-	return exec.Command("kubectl", args...)
+	return exec.CommandContext(d.ctx, "kubectl", args...)
 }
 
 func (d *RemoteDirectory) localTarCommand(dst string, strip int) *exec.Cmd {
@@ -115,7 +121,7 @@ func (d *RemoteDirectory) localTarCommand(dst string, strip int) *exec.Cmd {
 		"--strip-components=" + strconv.Itoa(strip),
 	}
 
-	return exec.Command("tar", args...)
+	return exec.CommandContext(d.ctx, "tar", args...)
 }
 
 func (d *RemoteDirectory) silentTerminate(cmd *exec.Cmd) {

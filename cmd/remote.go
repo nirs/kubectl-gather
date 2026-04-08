@@ -5,18 +5,20 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
 )
 
-func remoteGather(clusterConfigs []*clusterConfig) {
+func remoteGather(ctx context.Context, clusterConfigs []*clusterConfig) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
@@ -29,7 +31,7 @@ func remoteGather(clusterConfigs []*clusterConfig) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := runMustGather(clusterConfig.Context, directory); err != nil {
+			if err := runMustGather(ctx, clusterConfig.Context, directory); err != nil {
 				errors <- err
 			}
 		}()
@@ -39,15 +41,22 @@ func remoteGather(clusterConfigs []*clusterConfig) {
 	close(errors)
 
 	for err := range errors {
-		log.Fatal(err)
+		switch err {
+		case context.DeadlineExceeded:
+			log.Fatal("Gather timed out")
+		case context.Canceled:
+			log.Fatal("Gather was cancelled")
+		default:
+			log.Fatalf("Gather failed: %s", err)
+		}
 	}
 
 	log.Infof("Gathered %d clusters in %.3f seconds",
 		len(clusterConfigs), time.Since(start).Seconds())
 }
 
-func runMustGather(context string, directory string) error {
-	log.Infof("Gathering on remote cluster %q", context)
+func runMustGather(ctx context.Context, clusterContext string, directory string) error {
+	log.Infof("Gathering on remote cluster %q", clusterContext)
 	start := time.Now()
 
 	logfile, err := createMustGatherLog(directory)
@@ -59,18 +68,21 @@ func runMustGather(context string, directory string) error {
 
 	var stderr bytes.Buffer
 
-	cmd := mustGatherCommand(context, directory)
+	cmd := mustGatherCommand(ctx, clusterContext, directory)
 	cmd.Stdout = logfile
 	cmd.Stderr = &stderr
 
 	log.Debugf("Running command: %s", cmd)
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return fmt.Errorf("oc adm must-gather error: %s: %s", err, stderr.String())
 	}
 
 	elapsed := time.Since(start).Seconds()
 	log.Infof("Gathered on remote cluster %q in %.3f seconds",
-		context, elapsed)
+		clusterContext, elapsed)
 
 	return nil
 }
@@ -83,12 +95,12 @@ func createMustGatherLog(directory string) (*os.File, error) {
 	return os.Create(filepath.Join(directory, "must-gather.log"))
 }
 
-func mustGatherCommand(context string, directory string) *exec.Cmd {
+func mustGatherCommand(ctx context.Context, clusterContext string, directory string) *exec.Cmd {
 	args := []string{
 		"adm",
 		"must-gather",
 		"--image=" + gather.Image,
-		"--context=" + context,
+		"--context=" + clusterContext,
 		"--dest-dir=" + directory,
 	}
 	if kubeconfig != "" {
@@ -122,5 +134,10 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 		args = append(args, remoteArgs...)
 	}
 
-	return exec.Command("oc", args...)
+	cmd := exec.CommandContext(ctx, "oc", args...)
+	cmd.Cancel = func() error {
+		return cmd.Process.Signal(syscall.SIGTERM)
+	}
+	cmd.WaitDelay = 60 * time.Second
+	return cmd
 }

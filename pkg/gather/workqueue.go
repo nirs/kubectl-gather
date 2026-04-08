@@ -3,7 +3,10 @@
 
 package gather
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 type WorkFunc func() error
 
@@ -12,6 +15,7 @@ type Queuer interface {
 }
 
 type WorkQueue struct {
+	ctx     context.Context
 	queue   chan WorkFunc
 	workers int
 	wg      sync.WaitGroup
@@ -20,15 +24,21 @@ type WorkQueue struct {
 	closed  bool
 }
 
-func NewWorkQueue(workers int) *WorkQueue {
+func NewWorkQueue(ctx context.Context, workers int) *WorkQueue {
 	return &WorkQueue{
+		ctx:     ctx,
 		queue:   make(chan WorkFunc),
 		workers: workers,
 	}
 }
 
+// Queue sends work to the queue. If the context is cancelled, the work
+// is silently dropped so producers never block on a cancelled context.
 func (q *WorkQueue) Queue(work WorkFunc) {
-	q.queue <- work
+	select {
+	case q.queue <- work:
+	case <-q.ctx.Done():
+	}
 }
 
 func (q *WorkQueue) Start() {
