@@ -170,6 +170,10 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Infof("Using all addons")
 	}
 
+	if cmd.Flags().Changed("workers") {
+		log.Infof("Using %d workers per work queue", workers)
+	}
+
 	if !cmd.Flags().Changed("directory") {
 		log.Infof("Storing data in %q", directory)
 	}
