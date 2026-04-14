@@ -52,6 +52,7 @@ type Options struct {
 	Namespaces []string
 	Addons     []string
 	Cluster    bool
+	Workers    int
 	Salt       Salt
 	Log        *zap.SugaredLogger
 }
@@ -117,14 +118,19 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 		opts.Salt = RandomSalt()
 	}
 
+	workers := opts.Workers
+	if workers < 1 {
+		workers = workQueueSize
+	}
+
 	g := &Gatherer{
 		config:       config,
 		httpClient:   httpClient,
 		client:       client,
 		output:       OutputDirectory{base: directory},
 		opts:         &opts,
-		gatherQueue:  NewWorkQueue(workQueueSize),
-		inspectQueue: NewWorkQueue(workQueueSize),
+		gatherQueue:  NewWorkQueue(workers),
+		inspectQueue: NewWorkQueue(workers),
 		log:          opts.Log,
 		resources:    make(map[string]struct{}),
 	}
