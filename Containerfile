@@ -53,6 +53,7 @@ RUN mkdir -p /install-root/etc && \
 # - bash: required by the gather script
 # - tar, gzip: required by kubectl-gather for streaming files from pods
 # - rsync: required by oc adm must-gather to copy data from the pod
+# - gawk: provides awk, required by must-gather volume percentage checker
 # - util-linux-core: provides setsid -w, required by must-gather
 #
 # Removals:
@@ -67,7 +68,7 @@ RUN microdnf install -y \
         --setopt=install_weak_deps=0 \
         --releasever=9 \
         --nodocs \
-        bash tar gzip rsync util-linux-core \
+        bash tar gzip gawk rsync util-linux-core \
     && microdnf clean all \
     && rm -rf /install-root/usr/lib64/gconv
 
