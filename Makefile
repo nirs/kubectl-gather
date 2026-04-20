@@ -74,9 +74,7 @@ container:
 		.
 
 container-push:
-	podman save --format oci-archive -o $(IMAGE).tar $(image)
-	skopeo copy --all oci-archive:$(IMAGE).tar docker://$(image)
-	rm -f $(IMAGE).tar
+	podman manifest push --all $(image)
 
 # Parallel native container build targets used by github workflow.
 
