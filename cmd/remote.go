@@ -6,7 +6,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -50,17 +49,9 @@ func runMustGather(context string, directory string) error {
 	log.Infof("Gathering on remote cluster %q", context)
 	start := time.Now()
 
-	logfile, err := createMustGatherLog(directory)
-	if err != nil {
-		return err
-	}
-
-	defer logfile.Close()
-
 	var stderr bytes.Buffer
 
 	cmd := mustGatherCommand(context, directory)
-	cmd.Stdout = logfile
 	cmd.Stderr = &stderr
 
 	log.Debugf("Running command: %s", cmd)
@@ -73,14 +64,6 @@ func runMustGather(context string, directory string) error {
 		context, elapsed)
 
 	return nil
-}
-
-func createMustGatherLog(directory string) (*os.File, error) {
-	if err := os.MkdirAll(directory, 0750); err != nil {
-		return nil, err
-	}
-
-	return os.Create(filepath.Join(directory, "must-gather.log"))
 }
 
 func mustGatherCommand(context string, directory string) *exec.Cmd {
