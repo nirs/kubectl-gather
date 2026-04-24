@@ -79,7 +79,27 @@ ln -s $PWD/kubectl_complete-gather ~/bin/oc_complete-gather
 
 ## Testing
 
-Build and run the end-to-end tests:
+Run all tests:
+
+```console
+make test
+```
+
+To clean up:
+
+```console
+make clean
+```
+
+### Running specific tests
+
+To run only the unit tests:
+
+```console
+make unit-tests
+```
+
+To run only the end-to-end tests:
 
 ```console
 make
@@ -88,12 +108,6 @@ make e2e-tests
 
 This creates clusters, deploys test workloads, and runs all tests. On
 subsequent runs, existing clusters are reused.
-
-To delete the clusters and clean up test outputs:
-
-```console
-make clean
-```
 
 ## Build a container image
 

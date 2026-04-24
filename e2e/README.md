@@ -14,16 +14,11 @@ brew install kind podman
 ## Running the tests
 
 ```
-make e2e-tests
+make test
 ```
-
-This creates test clusters if needed and run the tests.
 
 ## Cleaning up
 
 ```
 make clean
 ```
-
-This delete the test clusters, kubeconfigs, and data gathered during the
-tests.
