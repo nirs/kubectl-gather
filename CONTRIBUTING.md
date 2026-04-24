@@ -83,7 +83,7 @@ Build and run the end-to-end tests:
 
 ```console
 make
-make test
+make e2e-tests
 ```
 
 This creates clusters, deploys test workloads, and runs all tests. On
