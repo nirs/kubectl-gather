@@ -52,7 +52,7 @@ jobs:
       - name: Build binary
         run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} make
 
-  e2e:
+  e2e-matrix:
     name: E2E (${{ matrix.goos }}-${{ matrix.goarch }})
     runs-on: ${{ matrix.runner }}
     strategy:
