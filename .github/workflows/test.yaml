@@ -115,3 +115,45 @@ jobs:
       - name: Delete clusters
         if: always()
         run: make clean
+
+  unit-test-matrix:
+    name: Unit test (${{ matrix.goos }}-${{ matrix.goarch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goarch: arm64
+            goos: windows
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-24.04
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-24.04-arm
+          - goos: windows
+            goarch: amd64
+            runner: windows-latest
+          - goos: darwin
+            goarch: amd64
+            runner: macos-15-intel
+          - goos: darwin
+            goarch: arm64
+            runner: macos-15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+      - name: Create build tag
+        run: git tag latest
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Download modules
+        run: go mod download
+      - name: Run unit tests
+        run: make unit-tests
