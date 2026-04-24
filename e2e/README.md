@@ -14,7 +14,7 @@ brew install kind podman
 ## Running the tests
 
 ```
-make test
+make e2e-tests
 ```
 
 This creates test clusters if needed and run the tests.

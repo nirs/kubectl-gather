@@ -37,7 +37,7 @@ ldflags := -s -w \
 	all \
 	kubectl-gather \
 	lint \
-	test \
+	e2e-tests \
 	clean \
 	e2e-build \
 	e2e-clusters \
@@ -56,7 +56,7 @@ lint:
 	golangci-lint run ./...
 	cd e2e && golangci-lint run ./...
 
-test: e2e-build e2e-deploy e2e-container
+e2e-tests: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
 	cd e2e && go test . -v -count=1
 

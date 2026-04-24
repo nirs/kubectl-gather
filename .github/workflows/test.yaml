@@ -91,7 +91,7 @@ jobs:
           sudo install oc /usr/local/bin/
           oc version --client
       - name: Run e2e tests
-        run: make test
+        run: make e2e-tests
       # Tar manually to work around github limitations with special characters
       # (:) in file names, and getting much smaller archives compared with zip.
       # https://github.com/actions/upload-artifact/issues/546
