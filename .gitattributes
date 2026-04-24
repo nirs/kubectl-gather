@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: The kubectl-gather authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Force LF line endings for test data files to ensure consistent
+# behavior across platforms (Windows CI was failing due to CRLF
+# conversion).
+pkg/gather/testdata/** text eol=lf
