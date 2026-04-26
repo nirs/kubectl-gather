@@ -60,6 +60,38 @@ Fork the project in github and clone the source:
 git clone https://github.com/{my-github-username}/kubectl-gather.git
 ```
 
+## Editor setup
+
+The e2e test files use the `//go:build e2e` build tag. You need to
+configure your editor's Go language server to recognize this tag,
+otherwise it will report errors for the `e2e` package.
+
+### Cursor / VSCode
+
+Create `.vscode/settings.json` in the project root:
+
+```json
+{
+  "gopls": {
+    "build.buildFlags": ["-tags=e2e"]
+  }
+}
+```
+
+### Vim / Neovim (with gopls)
+
+Add to your gopls configuration:
+
+```lua
+require('lspconfig').gopls.setup({
+  settings = {
+    gopls = {
+      buildFlags = { "-tags=e2e" },
+    },
+  },
+})
+```
+
 ## Build
 
 ```console
@@ -108,6 +140,12 @@ make e2e-tests
 
 This creates clusters, deploys test workloads, and runs all tests. On
 subsequent runs, existing clusters are reused.
+
+To run a specific e2e test directly:
+
+```console
+go test -tags e2e ./e2e -v -count=1 -run TestGatherLocal
+```
 
 ## Build a container image
 

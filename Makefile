@@ -60,11 +60,11 @@ lint:
 test: unit-tests e2e-tests
 
 unit-tests:
-	go test -v -count=1 ./pkg/gather ./e2e/test
+	go test -v -count=1 ./...
 
 e2e-tests: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
-	go test ./e2e -v -count=1
+	go test -tags e2e ./e2e -v -count=1
 
 clean:
 	go run ./e2e/cmd delete
