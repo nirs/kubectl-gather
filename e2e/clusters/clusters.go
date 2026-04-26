@@ -2,8 +2,9 @@ package clusters
 
 import (
 	"fmt"
-	"log"
 	"sync"
+
+	"go.uber.org/zap"
 
 	"github.com/nirs/kubectl-gather/e2e/clusters/minikube"
 )
@@ -15,9 +16,9 @@ const (
 
 var Names = []string{C1, C2}
 
-func Create() error {
-	log.Print("Creating clusters")
-	profiles, err := minikube.ClustersStatus()
+func Create(log *zap.SugaredLogger) error {
+	log.Debug("Creating clusters")
+	profiles, err := minikube.ClustersStatus(log)
 	if err != nil {
 		return err
 	}
@@ -26,7 +27,7 @@ func Create() error {
 		status := profiles[name]
 		switch status {
 		case "OK", "Running":
-			log.Printf("Using existing cluster %q", name)
+			log.Debugf("Using existing cluster %q", name)
 		case "", "Stopped":
 			start = append(start, name)
 		default:
@@ -34,33 +35,33 @@ func Create() error {
 		}
 	}
 	if err := execute(func(name string) error {
-		return minikube.New(name).Create()
+		return minikube.New(name, log).Create()
 	}, start); err != nil {
 		return err
 	}
-	log.Print("Clusters created")
+	log.Debug("Clusters created")
 	return nil
 }
 
-func Delete() error {
-	log.Print("Deleting clusters")
+func Delete(log *zap.SugaredLogger) error {
+	log.Debug("Deleting clusters")
 	if err := execute(func(name string) error {
-		return minikube.New(name).Delete()
+		return minikube.New(name, log).Delete()
 	}, Names); err != nil {
 		return err
 	}
-	log.Print("Clusters deleted")
+	log.Debug("Clusters deleted")
 	return nil
 }
 
-func Load(archive string) error {
-	log.Printf("Loading image %q", archive)
+func Load(log *zap.SugaredLogger, archive string) error {
+	log.Debugf("Loading image %q", archive)
 	if err := execute(func(name string) error {
-		return minikube.New(name).Load(archive)
+		return minikube.New(name, log).Load(archive)
 	}, Names); err != nil {
 		return err
 	}
-	log.Print("Image loaded")
+	log.Debug("Image loaded")
 	return nil
 }
 

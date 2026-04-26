@@ -1,12 +1,17 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 
-	"github.com/nirs/kubectl-gather/e2e/clusters"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+
+	"github.com/nirs/kubectl-gather/e2e/clusters"
+	"github.com/nirs/kubectl-gather/e2e/logging"
 )
+
+var log *zap.SugaredLogger
 
 var rootCmd = &cobra.Command{
 	Use:   "e2e",
@@ -17,7 +22,7 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create the e2e environment",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := clusters.Create(); err != nil {
+		if err := clusters.Create(log); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -28,7 +33,7 @@ var loadCmd = &cobra.Command{
 	Short: "Load image archive into e2e clusters",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := clusters.Load(args[0]); err != nil {
+		if err := clusters.Load(log, args[0]); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -38,7 +43,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete the e2e environment",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := clusters.Delete(); err != nil {
+		if err := clusters.Delete(log); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -51,8 +56,14 @@ func init() {
 }
 
 func main() {
-	err := rootCmd.Execute()
+	var err error
+	log, err = logging.NewLogger()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+	defer func() { _ = log.Sync() }()
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

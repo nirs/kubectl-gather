@@ -14,11 +14,13 @@ import (
 
 	"github.com/nirs/kubectl-gather/e2e/clusters"
 	"github.com/nirs/kubectl-gather/e2e/commands"
+	"github.com/nirs/kubectl-gather/e2e/test"
 	"github.com/nirs/kubectl-gather/pkg/gather"
 )
 
 func TestOutput(t *testing.T) {
-	t.Run("local", func(t *testing.T) {
+	t.Run("local", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		outputDir := "out/test-output-local"
 
 		cmd := exec.Command(
@@ -26,7 +28,7 @@ func TestOutput(t *testing.T) {
 			"--contexts", clusters.C1,
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd); err != nil {
+		if err := commands.Run(cmd, t.Log); err != nil {
 			t.Fatal(err)
 		}
 
@@ -34,7 +36,8 @@ func TestOutput(t *testing.T) {
 		testOutputReader(t, reader)
 	})
 
-	t.Run("remote", func(t *testing.T) {
+	t.Run("remote", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		if _, err := exec.LookPath("oc"); err != nil {
 			t.Skip("oc not found, skipping remote test")
 		}
@@ -48,22 +51,23 @@ func TestOutput(t *testing.T) {
 			"--remote",
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd); err != nil {
+		if err := commands.Run(cmd, t.Log); err != nil {
 			t.Fatal(err)
 		}
 
 		dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
-		t.Logf("Data root: %s", dataRoot)
+		t.Debugf("Data root: %s", dataRoot)
 
 		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1, dataRoot))
 		testOutputReader(t, reader)
 	})
 }
 
-func testOutputReader(t *testing.T, reader *gather.OutputReader) {
+func testOutputReader(t *test.T, reader *gather.OutputReader) {
 	t.Helper()
 
-	t.Run("deployment", func(t *testing.T) {
+	t.Run("deployment", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		name := "common-busybox"
 		data, err := reader.ReadResource("test-common", "apps/deployments", name)
 		if err != nil {
@@ -76,10 +80,11 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 		if deployment.Name != name {
 			t.Errorf("expected deployment name %q, got %s", name, deployment.Name)
 		}
-		t.Logf("Read deployment %q", deployment.Name)
+		t.Debugf("Read deployment %q", deployment.Name)
 	})
 
-	t.Run("pods", func(t *testing.T) {
+	t.Run("pods", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		pods, err := reader.ListResources("test-common", "pods")
 		if err != nil {
 			t.Fatal(err)
@@ -87,7 +92,7 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 		if len(pods) == 0 {
 			t.Fatalf("no pod found")
 		}
-		t.Logf("Listed pods %q", pods)
+		t.Debugf("Listed pods %q", pods)
 
 		for _, name := range pods {
 			data, err := reader.ReadResource("test-common", "pods", name)
@@ -101,11 +106,12 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 			if pod.Name != name {
 				t.Errorf("expected pod name %q, got %s", name, pod.Name)
 			}
-			t.Logf("Read pod %q", pod.Name)
+			t.Debugf("Read pod %q", pod.Name)
 		}
 	})
 
-	t.Run("cluster scope", func(t *testing.T) {
+	t.Run("cluster scope", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		namespaces, err := reader.ListResources("", "namespaces")
 		if err != nil {
 			t.Fatal(err)
@@ -113,7 +119,7 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 		if len(namespaces) == 0 {
 			t.Fatalf("no namespaces found")
 		}
-		t.Logf("Listed namespaces %q", namespaces)
+		t.Debugf("Listed namespaces %q", namespaces)
 
 		for _, name := range namespaces {
 			data, err := reader.ReadResource("", "namespaces", name)
@@ -127,11 +133,12 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 			if namespace.Name != name {
 				t.Errorf("expected namespace name %q, got %s", name, namespace.Name)
 			}
-			t.Logf("Read namespace %q", namespace.Name)
+			t.Debugf("Read namespace %q", namespace.Name)
 		}
 	})
 
-	t.Run("missing namespaced", func(t *testing.T) {
+	t.Run("missing namespaced", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		found, err := reader.ListResources("test-common", "missing")
 		if err != nil {
 			t.Fatal(err)
@@ -141,7 +148,8 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 		}
 	})
 
-	t.Run("missing cluster scope", func(t *testing.T) {
+	t.Run("missing cluster scope", func(dt *testing.T) {
+		t := test.WithLog(dt)
 		found, err := reader.ListResources("", "missing")
 		if err != nil {
 			t.Fatal(err)
@@ -152,7 +160,8 @@ func testOutputReader(t *testing.T, reader *gather.OutputReader) {
 	})
 }
 
-func TestSecretSanitization(t *testing.T) {
+func TestSecretSanitization(dt *testing.T) {
+	t := test.WithLog(dt)
 	outputDir := "out/test-secret-sanitization"
 
 	salt := gather.RandomSalt()
@@ -164,7 +173,7 @@ func TestSecretSanitization(t *testing.T) {
 		"--salt", saltB64,
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd); err != nil {
+	if err := commands.Run(cmd, t.Log); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
@@ -181,7 +190,8 @@ func TestSecretSanitization(t *testing.T) {
 	}
 }
 
-func TestSecretSanitizationRandomSalt(t *testing.T) {
+func TestSecretSanitizationRandomSalt(dt *testing.T) {
+	t := test.WithLog(dt)
 	outputDir := "out/test-secret-sanitization-random"
 
 	cmd := exec.Command(
@@ -189,7 +199,7 @@ func TestSecretSanitizationRandomSalt(t *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd); err != nil {
+	if err := commands.Run(cmd, t.Log); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
@@ -211,7 +221,7 @@ func TestSecretSanitizationRandomSalt(t *testing.T) {
 // Test helpers
 
 // gatheredSecrets returns all secrets gathered for a cluster.
-func gatheredSecrets(t *testing.T, outputDir, cluster string) []core.Secret {
+func gatheredSecrets(t *test.T, outputDir, cluster string) []core.Secret {
 	t.Helper()
 	pattern := filepath.Join(outputDir, cluster, "namespaces", "*", "secrets", "*.yaml")
 	files, err := filepath.Glob(pattern)
