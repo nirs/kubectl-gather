@@ -60,7 +60,7 @@ lint:
 test: unit-tests e2e-tests
 
 unit-tests:
-	go test -v -count=1 ./pkg/gather
+	go test -v -count=1 ./pkg/gather ./e2e/test
 
 e2e-tests: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
