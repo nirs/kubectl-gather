@@ -56,19 +56,18 @@ all: kubectl-gather
 
 lint:
 	golangci-lint run ./...
-	cd e2e && golangci-lint run ./...
 
 test: unit-tests e2e-tests
 
 unit-tests:
-	go test -v -count=1 ./...
+	go test -v -count=1 ./pkg/gather
 
 e2e-tests: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
-	cd e2e && go test . -v -count=1
+	go test ./e2e -v -count=1
 
 clean:
-	cd e2e && go run ./cmd delete
+	go run ./e2e/cmd delete
 	rm -rf e2e/out
 
 # Build container image locally. Uses qemu emulation for non-native platforms.
@@ -134,7 +133,7 @@ e2e-build:
 	GO_TOOLCHAIN=auto CGO_ENABLED=0 go build -ldflags="$(e2e_ldflags)"
 
 e2e-clusters:
-	cd e2e && go run ./cmd create
+	go run ./e2e/cmd create
 
 e2e-deploy: e2e-clusters
 	kubectl apply -k e2e/testdata/common --context c1
