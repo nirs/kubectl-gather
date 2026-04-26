@@ -117,11 +117,15 @@ Run all tests:
 make test
 ```
 
-To clean up:
+To delete clusters:
 
 ```console
 make clean
 ```
+
+> [!TIP]
+> Test output and logs are kept in `e2e/out` for inspection after the
+> run. Delete it manually with `rm -rf e2e/out` when no longer needed.
 
 ### Running specific tests
 

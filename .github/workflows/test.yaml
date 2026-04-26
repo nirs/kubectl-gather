@@ -92,6 +92,9 @@ jobs:
           oc version --client
       - name: Run e2e tests
         run: make e2e-tests
+      - name: Delete clusters
+        if: always()
+        run: make clean
       # Tar manually to work around github limitations with special characters
       # (:) in file names, and getting much smaller archives compared with zip.
       # https://github.com/actions/upload-artifact/issues/546
@@ -115,9 +118,6 @@ jobs:
           path: kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
           compression-level: 0
           retention-days: 15
-      - name: Delete clusters
-        if: always()
-        run: make clean
 
   unit-test-matrix:
     name: Unit test (${{ matrix.goos }}-${{ matrix.goarch }})
