@@ -5,7 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"testing"
+
+	"github.com/nirs/kubectl-gather/e2e/test"
 )
 
 // Validator checks that gathered resources exist or are missing in the output
@@ -26,7 +27,7 @@ func (v *Validator) WithDataRoot(dataRoot string) *Validator {
 	return &Validator{outputDir: v.outputDir, dataRoot: dataRoot}
 }
 
-func (v *Validator) Exists(t *testing.T, clusterNames []string, resources ...[]string) {
+func (v *Validator) Exists(t *test.T, clusterNames []string, resources ...[]string) {
 	t.Helper()
 
 	if !PathExists(t, v.outputDir) {
@@ -51,7 +52,7 @@ func (v *Validator) Exists(t *testing.T, clusterNames []string, resources ...[]s
 	}
 }
 
-func (v *Validator) Missing(t *testing.T, clusterNames []string, resources ...[]string) {
+func (v *Validator) Missing(t *test.T, clusterNames []string, resources ...[]string) {
 	t.Helper()
 
 	if !PathExists(t, v.outputDir) {
@@ -73,7 +74,7 @@ func (v *Validator) Missing(t *testing.T, clusterNames []string, resources ...[]
 	}
 }
 
-func JSONLog(t *testing.T, logPath string) {
+func JSONLog(t *test.T, logPath string) {
 	if !PathExists(t, logPath) {
 		t.Fatalf("log %q does not exist", logPath)
 	}
@@ -95,7 +96,7 @@ func JSONLog(t *testing.T, logPath string) {
 	}
 }
 
-func PathExists(t *testing.T, path string) bool {
+func PathExists(t *test.T, path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if !os.IsNotExist(err) {
 			t.Fatalf("error checking path %q: %v", path, err)

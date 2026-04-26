@@ -3,13 +3,14 @@ package commands
 import (
 	"bufio"
 	"io"
-	"log"
 	"os/exec"
+
+	"go.uber.org/zap"
 )
 
 // Run a command logging lines from stderr.
-func Run(cmd *exec.Cmd) error {
-	log.Printf("Running %v", cmd)
+func Run(cmd *exec.Cmd, log *zap.SugaredLogger) error {
+	log.Debugf("Running %v", cmd)
 	pipe, err := cmd.StderrPipe()
 	if err != nil {
 		return err
@@ -22,11 +23,11 @@ func Run(cmd *exec.Cmd) error {
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("Failed to read from command stderr: %s", err)
+				log.Debugf("Failed to read from command stderr: %s", err)
 			}
 			break
 		}
-		log.Print(string(line))
+		log.Debug(string(line))
 	}
 	return cmd.Wait()
 }

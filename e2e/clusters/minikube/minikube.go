@@ -6,16 +6,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"runtime"
 	"sync"
+
+	"go.uber.org/zap"
 
 	"github.com/nirs/kubectl-gather/e2e/commands"
 )
 
 type Cluster struct {
 	Name string
+	log  *zap.SugaredLogger
 }
 
 type profileInfo struct {
@@ -28,10 +30,10 @@ type profileList struct {
 	Invalid []profileInfo `json:"invalid"`
 }
 
-func ClustersStatus() (map[string]string, error) {
+func ClustersStatus(log *zap.SugaredLogger) (map[string]string, error) {
 	status := map[string]string{}
 	cmd := exec.Command("minikube", "profile", "list", "--output", "json")
-	log.Printf("Running %v", cmd)
+	log.Debugf("Running %v", cmd)
 	out, err := cmd.Output()
 	if err != nil {
 		return status, fmt.Errorf("failed to list profiles: %w: %s", err, commands.Stderr(err))
@@ -49,12 +51,15 @@ func ClustersStatus() (map[string]string, error) {
 	return status, nil
 }
 
-func New(name string) *Cluster {
-	return &Cluster{name}
+func New(name string, log *zap.SugaredLogger) *Cluster {
+	return &Cluster{
+		Name: name,
+		log:  log.Named(name),
+	}
 }
 
 func (c *Cluster) Create() error {
-	log.Printf("Creating cluster %q", c.Name)
+	c.log.Info("Creating cluster")
 	if err := c.startCluster(); err != nil {
 		return err
 	}
@@ -77,18 +82,18 @@ var deleteMutex sync.Mutex
 func (c *Cluster) Delete() error {
 	deleteMutex.Lock()
 	defer deleteMutex.Unlock()
-	log.Printf("Deleting cluster %q", c.Name)
+	c.log.Info("Deleting cluster")
 	return c.run("delete")
 }
 
 func (c *Cluster) Load(archive string) error {
-	log.Printf("Loading image %q in cluster %q", archive, c.Name)
+	c.log.Infof("Loading image %q", archive)
 	return c.run("image", "load", archive)
 }
 
 // startCluster start the minikube cluster, creating it if it does not exist.
 func (c *Cluster) startCluster() error {
-	log.Printf("Start cluster %q", c.Name)
+	c.log.Info("Starting cluster")
 	args := []string{"start", "--memory", "3g"}
 	switch runtime.GOOS {
 	case "darwin":
@@ -116,7 +121,7 @@ func (c *Cluster) startCluster() error {
 //     route ALL DNS queries through eth0's DNS servers.  Without this,
 //     systemd-resolved might still try other interfaces' DNS servers.
 func (c *Cluster) configureDNS() error {
-	log.Printf("Configuring DNS in cluster %q", c.Name)
+	c.log.Info("Configuring DNS")
 	script := `\
 resolvectl dns eth0 8.8.8.8 1.1.1.1
 resolvectl domain eth0 "~."
@@ -129,7 +134,7 @@ resolvectl flush-caches`
 // managed macOS machines to verify that our configuration works. Does not work
 // on non-vm drivers on Linux.
 func (c *Cluster) verifyDNS() error {
-	log.Printf("Verifying DNS in cluster %q", c.Name)
+	c.log.Info("Verifying DNS")
 	return c.run("ssh", "--", "resolvectl", "query", "google.com")
 }
 
@@ -137,7 +142,7 @@ func (c *Cluster) verifyDNS() error {
 func (c *Cluster) run(args ...string) error {
 	args = append([]string{"--profile", c.Name}, args...)
 	cmd := exec.Command("minikube", args...)
-	log.Printf("[%s] Running %s", c.Name, cmd)
+	c.log.Debugf("Running %s", cmd)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -153,11 +158,11 @@ func (c *Cluster) run(args ...string) error {
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("[%s] Failed to read from command stdout: %s", c.Name, err)
+				c.log.Debugf("Failed to read from command stdout: %s", err)
 			}
 			break
 		}
-		log.Printf("[%s] %s", c.Name, string(line))
+		c.log.Debug(string(line))
 	}
 	if err := cmd.Wait(); err != nil {
 		return fmt.Errorf("%w: %s", err, stderr.String())

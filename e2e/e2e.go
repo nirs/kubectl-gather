@@ -4,7 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"testing"
+
+	"github.com/nirs/kubectl-gather/e2e/test"
 )
 
 const kubectlGather = "../kubectl-gather"
@@ -16,7 +17,7 @@ const kubectlGather = "../kubectl-gather"
 //
 // The directory is verified by checking that it contains a version file
 // matching the output of kubectl-gather --must-gather-version.
-func findDataRoot(t *testing.T, clusterDir string) string {
+func findDataRoot(t *test.T, clusterDir string) string {
 	t.Helper()
 
 	pattern := filepath.Join(clusterDir, "*sha256-*", "version")
