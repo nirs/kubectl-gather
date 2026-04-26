@@ -68,7 +68,6 @@ e2e-tests: e2e-build e2e-deploy e2e-container
 
 clean:
 	go run ./e2e/cmd delete
-	rm -rf e2e/out
 
 # Build container image locally. Uses qemu emulation for non-native platforms.
 container:
