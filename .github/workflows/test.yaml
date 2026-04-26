@@ -98,7 +98,10 @@ jobs:
       - name: Archive test artifacts
         if: always()
         run: |
-          find e2e/out -maxdepth 1 -name 'test-*' > artifacts.txt
+          find e2e/out -maxdepth 1 \
+              -name 'test-*' -print -o \
+              -name '*.log' -print \
+              > artifacts.txt
           tar --create \
               --gzip \
               --file kubectl-gather-e2e-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
