@@ -165,4 +165,4 @@ e2e-container: e2e-clusters
 	mkdir -p e2e/out
 	rm -f e2e/out/gather.tar
 	podman save -o e2e/out/gather.tar $(e2e_image)
-	cd e2e && go run ./cmd load out/gather.tar
+	go run ./e2e/cmd load e2e/out/gather.tar
