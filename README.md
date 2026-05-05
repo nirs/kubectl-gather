@@ -196,6 +196,59 @@ gather.all/dr1/addons/rook/
         └── ceph-volume.log
 ```
 
+## Using separate kubeconfig files
+
+When working with multiple clusters you often get a separate kubeconfig
+file per cluster, exported from CI or another system. These files
+typically have duplicate entries and use the same generic names (e.g.
+"admin" for every context and user), so they cannot be merged with
+standard tools.
+
+To gather from separate kubeconfig files, pass them all to
+`--kubeconfig`:
+
+```
+$ kubectl gather --kubeconfig ocp/hub.yaml,ocp/c1.yaml,ocp/c2.yaml -d gather.dr
+2026-05-06T00:15:32.100+0300	INFO	gather	Using cluster "hub" from kubeconfig "ocp/hub.yaml"
+2026-05-06T00:15:32.101+0300	INFO	gather	Using cluster "c1" from kubeconfig "ocp/c1.yaml"
+2026-05-06T00:15:32.102+0300	INFO	gather	Using cluster "c2" from kubeconfig "ocp/c2.yaml"
+2026-05-06T00:15:32.102+0300	INFO	gather	Gathering from all namespaces
+2026-05-06T00:15:32.102+0300	INFO	gather	Gathering from cluster "hub"
+2026-05-06T00:15:32.102+0300	INFO	gather	Gathering from cluster "c1"
+2026-05-06T00:15:32.102+0300	INFO	gather	Gathering from cluster "c2"
+...
+```
+
+When using multiple kubeconfig files, each file provides one cluster.
+The context name is derived from the filename (without directory and
+extension), and the actual context names inside the files (e.g. "admin")
+are ignored. The gathered data is stored in one directory per context:
+
+```
+$ tree -L 2 gather.dr/
+gather.dr/
+├── c1
+│   ├── cluster
+│   └── namespaces
+├── c2
+│   ├── cluster
+│   └── namespaces
+├── gather.log
+└── hub
+    ├── cluster
+    └── namespaces
+```
+
+File names must be unique across all specified kubeconfig files, even
+if the files are in different directories.
+
+When using a single kubeconfig file, contexts are used as-is from the
+file, like standard kubectl. Use `--contexts` to select which contexts
+to gather from.
+
+`kubectl gather` never modifies the provided kubeconfig files or the
+default kubeconfig (`~/.kube/config`).
+
 ## Gathering data for specific namespaces
 
 When debugging a problem, it is useful to gather data for specific
