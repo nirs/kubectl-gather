@@ -19,10 +19,11 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
+	"github.com/nirs/kubectl-gather/pkg/kubeconfig"
 )
 
 var directory string
-var kubeconfig string
+var kubeconfigs []string
 var contexts []string
 var namespaces []string
 var addons []string
@@ -38,6 +39,9 @@ var log *zap.SugaredLogger
 var example = `  # Gather data from all namespaces in current context in my-kubeconfig and
   # store it in gather.{timestamp}.
   kubectl gather --kubeconfig my-kubeconfig
+
+  # Gather from multiple clusters, each with its own kubeconfig file.
+  kubectl gather --kubeconfig ocp/hub.yaml,ocp/c1.yaml,ocp/c2.yaml
 
   # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
   # it in "gather.local/", using default kubeconfig (~/.kube/config).
@@ -87,8 +91,8 @@ func init() {
 	// Don't set default kubeconfig, so kubeconfig is empty unless the user
 	// specified the option. This is required to allow running remote commands
 	// using in-cluster config.
-	rootCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "",
-		"the kubeconfig file to use")
+	rootCmd.Flags().StringSliceVar(&kubeconfigs, "kubeconfig", nil,
+		"comma separated list of kubeconfig files to use")
 
 	rootCmd.Flags().StringSliceVar(&contexts, "contexts", nil,
 		"comma separated list of contexts to gather data from")
@@ -140,9 +144,37 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	clusterConfigs, err := loadClusterConfigs(contexts, kubeconfig)
-	if err != nil {
-		log.Fatal(err)
+	var clusterConfigs []*kubeconfig.Config
+	var err error
+
+	if len(kubeconfigs) > 1 {
+		if len(contexts) > 0 {
+			log.Fatal("--contexts cannot be used with multiple --kubeconfig files")
+		}
+		clusterConfigs, err = kubeconfig.LoadMultiple(kubeconfigs)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, c := range clusterConfigs {
+			log.Infof("Using cluster %q from kubeconfig %q", c.Name, c.Kubeconfig)
+		}
+	} else {
+		var kc string
+		if len(kubeconfigs) == 1 {
+			kc = kubeconfigs[0]
+		}
+		clusterConfigs, err = kubeconfig.Load(kc, contexts)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if clusterConfigs[0].Name == "" {
+			log.Infof("Using in cluster config")
+		} else {
+			log.Infof("Using kubeconfig %q", clusterConfigs[0].Kubeconfig)
+			if len(contexts) == 0 {
+				log.Infof("Using current context %q", clusterConfigs[0].Name)
+			}
+		}
 	}
 
 	if cmd.Flags().Changed("salt") {
