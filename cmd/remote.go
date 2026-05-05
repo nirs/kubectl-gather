@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
+	"github.com/nirs/kubectl-gather/pkg/kubeconfig"
 )
 
-func remoteGather(clusterConfigs []*clusterConfig) {
+func remoteGather(clusterConfigs []*kubeconfig.Config) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
@@ -23,12 +24,12 @@ func remoteGather(clusterConfigs []*clusterConfig) {
 
 	for i := range clusterConfigs {
 		clusterConfig := clusterConfigs[i]
-		directory := filepath.Join(directory, clusterConfig.Context)
+		clusterDir := filepath.Join(directory, clusterConfig.Name)
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := runMustGather(clusterConfig.Context, directory); err != nil {
+			if err := runMustGather(clusterConfig, clusterDir); err != nil {
 				errors <- err
 			}
 		}()
@@ -45,13 +46,13 @@ func remoteGather(clusterConfigs []*clusterConfig) {
 		len(clusterConfigs), time.Since(start).Seconds())
 }
 
-func runMustGather(context string, directory string) error {
-	log.Infof("Gathering on remote cluster %q", context)
+func runMustGather(config *kubeconfig.Config, directory string) error {
+	log.Infof("Gathering on remote cluster %q", config.Name)
 	start := time.Now()
 
 	var stderr bytes.Buffer
 
-	cmd := mustGatherCommand(context, directory)
+	cmd := mustGatherCommand(config, directory)
 	cmd.Stderr = &stderr
 
 	log.Debugf("Running command: %s", cmd)
@@ -61,21 +62,23 @@ func runMustGather(context string, directory string) error {
 
 	elapsed := time.Since(start).Seconds()
 	log.Infof("Gathered on remote cluster %q in %.3f seconds",
-		context, elapsed)
+		config.Name, elapsed)
 
 	return nil
 }
 
-func mustGatherCommand(context string, directory string) *exec.Cmd {
+func mustGatherCommand(config *kubeconfig.Config, directory string) *exec.Cmd {
 	args := []string{
 		"adm",
 		"must-gather",
 		"--image=" + gather.Image,
-		"--context=" + context,
 		"--dest-dir=" + directory,
 	}
-	if kubeconfig != "" {
-		args = append(args, "--kubeconfig="+kubeconfig)
+	if config.Context != "" {
+		args = append(args, "--context="+config.Context)
+	}
+	if config.Kubeconfig != "" {
+		args = append(args, "--kubeconfig="+config.Kubeconfig)
 	}
 
 	var remoteArgs []string
