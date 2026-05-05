@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nirs/kubectl-gather/pkg/gather"
+	"github.com/nirs/kubectl-gather/pkg/kubeconfig"
 )
 
 type result struct {
@@ -16,7 +17,7 @@ type result struct {
 	Err   error
 }
 
-func localGather(clusterConfigs []*clusterConfig) {
+func localGather(clusterConfigs []*kubeconfig.Config) {
 	start := time.Now()
 
 	wg := sync.WaitGroup{}
@@ -25,30 +26,30 @@ func localGather(clusterConfigs []*clusterConfig) {
 	for i := range clusterConfigs {
 		clusterConfig := clusterConfigs[i]
 
-		if clusterConfig.Context != "" {
-			log.Infof("Gathering from cluster %q", clusterConfig.Context)
+		if clusterConfig.Name != "" {
+			log.Infof("Gathering from cluster %q", clusterConfig.Name)
 		} else {
-			log.Info("Gathering on cluster")
+			log.Info("Gathering in cluster")
 		}
 		start := time.Now()
 
-		directory := filepath.Join(directory, clusterConfig.Context)
+		clusterDir := filepath.Join(directory, clusterConfig.Name)
 
 		options := gather.Options{
-			Kubeconfig: kubeconfig,
+			Kubeconfig: clusterConfig.Kubeconfig,
 			Context:    clusterConfig.Context,
 			Namespaces: namespaces,
 			Addons:     addons,
 			Cluster:    cluster,
 			Salt:       parsedSalt,
-			Log:        log.Named(clusterConfig.Context),
+			Log:        log.Named(clusterConfig.Name),
 		}
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
-			g, err := gather.New(clusterConfig.Config, directory, options)
+			g, err := gather.New(clusterConfig.Config, clusterDir, options)
 			if err != nil {
 				results <- result{Err: err}
 				return
@@ -61,11 +62,11 @@ func localGather(clusterConfigs []*clusterConfig) {
 			}
 
 			elapsed := time.Since(start).Seconds()
-			if clusterConfig.Context != "" {
+			if clusterConfig.Name != "" {
 				log.Infof("Gathered %d resources from cluster %q in %.3f seconds",
-					g.Count(), clusterConfig.Context, elapsed)
+					g.Count(), clusterConfig.Name, elapsed)
 			} else {
-				log.Infof("Gathered %d resources on cluster in %.3f seconds",
+				log.Infof("Gathered %d resources in %.3f seconds",
 					g.Count(), elapsed)
 			}
 		}()
