@@ -48,7 +48,7 @@ func NewRookAddon(backend AddonBackend) (Addon, error) {
 	}, nil
 }
 
-func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured) error {
+func (a *RookAddon) Inspect(cephcluster *unstructured.Unstructured, _ *time.Time) error {
 	namespace := cephcluster.GetNamespace()
 	a.log.Debugf("Inspecting cephcluster \"%s/%s\"", namespace, cephcluster.GetName())
 
