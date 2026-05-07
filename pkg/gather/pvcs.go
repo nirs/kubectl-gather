@@ -4,6 +4,8 @@
 package gather
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -34,7 +36,7 @@ func NewPVCAddon(backend AddonBackend) (Addon, error) {
 	}, nil
 }
 
-func (a *pvcsAddon) Inspect(pvc *unstructured.Unstructured) error {
+func (a *pvcsAddon) Inspect(pvc *unstructured.Unstructured, _ *time.Time) error {
 	// When cluster flag is set, PV and StorageClass resources are already gathered at cluster level
 	if a.Options().Cluster {
 		return nil

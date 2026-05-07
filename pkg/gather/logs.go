@@ -56,7 +56,7 @@ func NewLogsAddon(backend AddonBackend) (Addon, error) {
 	}, nil
 }
 
-func (a *LogsAddon) Inspect(pod *unstructured.Unstructured) error {
+func (a *LogsAddon) Inspect(pod *unstructured.Unstructured, _ *time.Time) error {
 	a.log.Debugf("Inspecting pod \"%s/%s\"", pod.GetNamespace(), pod.GetName())
 
 	containers, err := a.listContainers(pod)

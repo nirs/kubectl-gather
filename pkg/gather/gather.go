@@ -57,8 +57,10 @@ type Options struct {
 }
 
 type Addon interface {
-	// Inspect a resource and gather related data.
-	Inspect(*unstructured.Unstructured) error
+	// Inspect a resource and gather related data. The clusterTime is the
+	// approximate time on the cluster when the resource was listed. If the
+	// cluster time is not available, clusterTime is nil.
+	Inspect(*unstructured.Unstructured, *time.Time) error
 }
 
 type Gatherer struct {
@@ -183,6 +185,34 @@ func (g *Gatherer) Gather() error {
 
 func (g *Gatherer) Count() int {
 	return len(g.resources)
+}
+
+// clusterTime returns the current time on the cluster by reading the Date
+// header from an API server response.
+func (g *Gatherer) clusterTime() (*time.Time, error) {
+	req, err := http.NewRequest("GET", g.config.Host+"/version", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := g.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+
+	date := resp.Header.Get("Date")
+	if date == "" {
+		return nil, fmt.Errorf("no Date header in response")
+	}
+
+	t, err := http.ParseTime(date)
+	if err != nil {
+		return nil, err
+	}
+
+	return &t, nil
 }
 
 func (g *Gatherer) prepare() error {
@@ -343,6 +373,24 @@ func (g *Gatherer) shouldGather(gv schema.GroupVersion, res *metav1.APIResource)
 func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 	start := time.Now()
 
+	addon := g.addons[r.Name()]
+
+	// Get the cluster time before listing. A list response is a consistent
+	// snapshot created by the API server shortly after the request, so the
+	// cluster time captured here is a close approximation of the snapshot
+	// time. Paginated lists use the same snapshot, so we don't need to get
+	// the time again for subsequent pages.
+	var snapshotTime *time.Time
+	if addon != nil {
+		var err error
+		snapshotTime, err = g.clusterTime()
+		if err != nil {
+			g.log.Warnf("Cannot get cluster time for %q, using local time: %s", r.Name(), err)
+			now := time.Now()
+			snapshotTime = &now
+		}
+	}
+
 	opts := metav1.ListOptions{Limit: listResourcesLimit}
 	count := 0
 
@@ -368,8 +416,6 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 			}
 		}
 
-		addon := g.addons[r.Name()]
-
 		for i := range list.Items {
 			item := &list.Items[i]
 			key := g.keyFromResource(r, item)
@@ -381,7 +427,7 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 			count += 1
 
 			if addon != nil {
-				if err := addon.Inspect(item); err != nil {
+				if err := addon.Inspect(item, snapshotTime); err != nil {
 					g.log.Warnf("Cannot inspect %q: %s", key, err)
 				}
 			}
