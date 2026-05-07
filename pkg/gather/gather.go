@@ -380,14 +380,14 @@ func (g *Gatherer) gatherResources(r *resourceInfo, namespace string) {
 
 			count += 1
 
-			if err := g.dumpResource(r, item); err != nil {
-				g.log.Warnf("Cannot dump %q: %s", key, err)
-			}
-
 			if addon != nil {
 				if err := addon.Inspect(item); err != nil {
 					g.log.Warnf("Cannot inspect %q: %s", key, err)
 				}
+			}
+
+			if err := g.dumpResource(r, item); err != nil {
+				g.log.Warnf("Cannot dump %q: %s", key, err)
 			}
 		}
 
