@@ -25,7 +25,10 @@ type ramenAddon struct {
 
 func init() {
 	registerAddon(ramenName, addonInfo{
-		Resources: []string{"ramendr.openshift.io/drplacementcontrols"},
+		Resources: []string{
+			"ramendr.openshift.io/drplacementcontrols",
+			"ramendr.openshift.io/volumereplicationgroups",
+		},
 		AddonFunc: NewRamenAddon,
 	})
 }
@@ -39,13 +42,16 @@ func NewRamenAddon(backend AddonBackend) (Addon, error) {
 }
 
 func (a *ramenAddon) Inspect(item *unstructured.Unstructured, clusterTime *time.Time) error {
-	a.log.Debugf("Inspecting drpc \"%s/%s\"", item.GetNamespace(), item.GetName())
+	kind := item.GetKind()
+	a.log.Debugf("Inspecting %s \"%s/%s\"", kind, item.GetNamespace(), item.GetName())
 
 	if clusterTime != nil {
 		a.annotateClusterTime(item, clusterTime)
 	}
 
-	a.gatherDRPolicy(item)
+	if kind == "DRPlacementControl" {
+		a.gatherDRPolicy(item)
+	}
 
 	return nil
 }
