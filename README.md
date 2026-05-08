@@ -519,12 +519,47 @@ $ du -sh gather.remote.app/
 2.7M	gather.remote.app/
 ```
 
-## Enabling specific addons
+## Addons
 
-By default we gather additional data like pod container logs and rook
-commands and external logs stored on the nodes. To control gathering of
-additional data, you can use the `--addons` flag. If the flag is not set
-all addons are enabled.
+Addons enrich gathered resources and collect related data. By default all
+addons are enabled.
+
+### logs
+
+Gathers current and previous container logs for pods.
+
+### pvcs
+
+Gathers related PersistentVolumes and StorageClasses for
+PersistentVolumeClaims.
+
+### ramen
+
+Annotates DRPlacementControl and VolumeReplicationGroup resources with
+the cluster time when the resource was gathered:
+
+```yaml
+metadata:
+  annotations:
+    kubectl-gather.nirs.github.com/cluster-time: "2026-05-08T18:44:02Z"
+```
+
+This enables tools like ramenctl to validate replication freshness
+offline by comparing `lastGroupSyncTime` against the cluster time.
+
+For DRPlacementControl resources, the addon also gathers the referenced
+DRPolicy (cluster-scoped), which contains the scheduling interval
+needed for validation.
+
+### rook
+
+Gathers ceph commands output and external logs from nodes for
+CephClusters.
+
+### Enabling specific addons
+
+To control which addons are enabled, use the `--addons` flag. If the
+flag is not set all addons are enabled.
 
 Gathering only resources:
 
