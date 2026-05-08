@@ -20,6 +20,7 @@ const (
 )
 
 type LogsAddon struct {
+	addonMeta
 	AddonBackend
 	client *kubernetes.Clientset
 	log    *zap.SugaredLogger
@@ -50,6 +51,7 @@ func NewLogsAddon(backend AddonBackend) (Addon, error) {
 	}
 
 	return &LogsAddon{
+		addonMeta:    addonMeta{name: logsName},
 		AddonBackend: backend,
 		client:       client,
 		log:          backend.Options().Log.Named(logsName),

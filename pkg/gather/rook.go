@@ -23,6 +23,7 @@ const (
 )
 
 type RookAddon struct {
+	addonMeta
 	AddonBackend
 	client *kubernetes.Clientset
 	log    *zap.SugaredLogger
@@ -42,6 +43,7 @@ func NewRookAddon(backend AddonBackend) (Addon, error) {
 	}
 
 	return &RookAddon{
+		addonMeta:    addonMeta{name: rookName},
 		AddonBackend: backend,
 		client:       clientSet,
 		log:          backend.Options().Log.Named(rookName),

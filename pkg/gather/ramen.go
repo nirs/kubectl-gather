@@ -18,6 +18,7 @@ const (
 )
 
 type ramenAddon struct {
+	addonMeta
 	AddonBackend
 	log *zap.SugaredLogger
 }
@@ -31,6 +32,7 @@ func init() {
 
 func NewRamenAddon(backend AddonBackend) (Addon, error) {
 	return &ramenAddon{
+		addonMeta:    addonMeta{name: ramenName},
 		AddonBackend: backend,
 		log:          backend.Options().Log.Named(ramenName),
 	}, nil
