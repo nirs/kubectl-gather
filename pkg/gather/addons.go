@@ -34,6 +34,13 @@ type AddonBackend interface {
 	GatherResource(schema.GroupVersionResource, types.NamespacedName)
 }
 
+// addonMeta provides common addon metadata like name.
+type addonMeta struct {
+	name string
+}
+
+func (a *addonMeta) Name() string { return a.name }
+
 type addonFunc func(AddonBackend) (Addon, error)
 
 type addonInfo struct {

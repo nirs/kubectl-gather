@@ -57,6 +57,9 @@ type Options struct {
 }
 
 type Addon interface {
+	// Name returns the addon name.
+	Name() string
+
 	// Inspect a resource and gather related data. The clusterTime is the
 	// approximate time on the cluster when the resource was listed. If the
 	// cluster time is not available, clusterTime is nil.

@@ -18,6 +18,7 @@ const (
 )
 
 type pvcsAddon struct {
+	addonMeta
 	AddonBackend
 	log *zap.SugaredLogger
 }
@@ -31,6 +32,7 @@ func init() {
 
 func NewPVCAddon(backend AddonBackend) (Addon, error) {
 	return &pvcsAddon{
+		addonMeta:    addonMeta{name: pvcsName},
 		AddonBackend: backend,
 		log:          backend.Options().Log.Named(pvcsName),
 	}, nil
