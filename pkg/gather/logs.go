@@ -39,7 +39,7 @@ func (c containerInfo) String() string {
 
 func init() {
 	registerAddon(logsName, addonInfo{
-		Resource:  "pods",
+		Resources: []string{"pods"},
 		AddonFunc: NewLogsAddon,
 	})
 }

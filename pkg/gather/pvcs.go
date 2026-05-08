@@ -25,7 +25,7 @@ type pvcsAddon struct {
 
 func init() {
 	registerAddon(pvcsName, addonInfo{
-		Resource:  "persistentvolumeclaims",
+		Resources: []string{"persistentvolumeclaims"},
 		AddonFunc: NewPVCAddon,
 	})
 }

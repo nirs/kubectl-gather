@@ -31,7 +31,7 @@ type RookAddon struct {
 
 func init() {
 	registerAddon(rookName, addonInfo{
-		Resource:  "ceph.rook.io/cephclusters",
+		Resources: []string{"ceph.rook.io/cephclusters"},
 		AddonFunc: NewRookAddon,
 	})
 }
