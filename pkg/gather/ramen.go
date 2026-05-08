@@ -25,7 +25,7 @@ type ramenAddon struct {
 
 func init() {
 	registerAddon(ramenName, addonInfo{
-		Resource:  "ramendr.openshift.io/drplacementcontrols",
+		Resources: []string{"ramendr.openshift.io/drplacementcontrols"},
 		AddonFunc: NewRamenAddon,
 	})
 }

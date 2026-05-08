@@ -4,6 +4,7 @@
 package gather
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 
@@ -44,13 +45,16 @@ func (a *addonMeta) Name() string { return a.name }
 type addonFunc func(AddonBackend) (Addon, error)
 
 type addonInfo struct {
-	Resource  string
+	Resources []string
 	AddonFunc addonFunc
 }
 
 var addonRegistry = map[string]addonInfo{}
 
 func registerAddon(name string, ai addonInfo) {
+	if _, exists := addonRegistry[name]; exists {
+		panic(fmt.Sprintf("addon %q already registered", name))
+	}
 	addonRegistry[name] = ai
 }
 
@@ -63,7 +67,12 @@ func createAddons(backend AddonBackend) (map[string]Addon, error) {
 			if err != nil {
 				return nil, err
 			}
-			registry[addonInfo.Resource] = addon
+			for _, resource := range addonInfo.Resources {
+				if other, exists := registry[resource]; exists {
+					return nil, fmt.Errorf("addon %q: resource %q already registered by addon %q", name, resource, other.Name())
+				}
+				registry[resource] = addon
+			}
 		}
 	}
 
