@@ -1,5 +1,9 @@
 # kubectl-gather
 
+[![Actions Status](https://github.com/nirs/kubectl-gather/workflows/Test/badge.svg)](https://github.com/nirs/kubectl-gather/actions)
+[![GoReport Status](https://goreportcard.com/badge/github.com/nirs/kubectl-gather)](https://goreportcard.com/report/github.com/nirs/kubectl-gather)
+[![GitHub All Releases](https://img.shields.io/github/downloads/nirs/kubectl-gather/total.svg)](https://github.com/nirs/kubectl-gather/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/nirs/kubectl-gather)](https://github.com/nirs/kubectl-gather/releases/latest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/nirs/kubectl-gather.svg)](https://pkg.go.dev/github.com/nirs/kubectl-gather)
 
 This is a kubectl plugin for gathering data about your cluster that may
