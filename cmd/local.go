@@ -40,6 +40,7 @@ func localGather(clusterConfigs []*clusterConfig) {
 			Namespaces: namespaces,
 			Addons:     addons,
 			Cluster:    cluster,
+			Workers:    workers,
 			Salt:       parsedSalt,
 			Log:        log.Named(clusterConfig.Context),
 		}

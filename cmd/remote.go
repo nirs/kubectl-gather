@@ -100,6 +100,10 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 	// ensuring consistent hashes for comparing secrets across clusters.
 	remoteArgs = append(remoteArgs, "--salt="+salt)
 
+	if workers > 0 {
+		remoteArgs = append(remoteArgs, fmt.Sprintf("--workers=%d", workers))
+	}
+
 	if len(remoteArgs) > 0 {
 		args = append(args, "--", "/usr/bin/gather")
 		args = append(args, remoteArgs...)
