@@ -8,7 +8,7 @@ require (
 	github.com/aymanbagabas/go-udiff v0.4.1
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/zap v1.27.1
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	k8s.io/api v0.33.10
 	k8s.io/apimachinery v0.33.10
 	k8s.io/cli-runtime v0.33.10
