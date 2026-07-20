@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 
+	"go.uber.org/zap"
 	"golang.org/x/crypto/pbkdf2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -44,23 +45,11 @@ func HashValue(data []byte, salt Salt) []byte {
 	return pbkdf2.Key(data, salt[:], pbkdf2Iterations, sha256.Size, sha256.New)
 }
 
-// sanitizeResource modifies the resource in place, replacing sensitive data
-// with deterministic hashes. Currently handles Secret resources, other resource
-// types pass through unchanged.
-func (g *Gatherer) sanitizeResource(item *unstructured.Unstructured) {
-	switch item.GetKind() {
-	case "Secret":
-		g.sanitizeSecret(item)
-	}
-}
-
 // sanitizeSecret hashes secret data values and strips the
 // last-applied-configuration annotation.
-func (g *Gatherer) sanitizeSecret(item *unstructured.Unstructured) {
-	log := g.opts.Log
+func sanitizeSecret(item *unstructured.Unstructured, salt Salt, log *zap.SugaredLogger) {
 	obj := item.Object
 	name := item.GetName()
-	salt := g.opts.Salt
 	saltB64 := base64.StdEncoding.EncodeToString(salt[:])
 
 	// If already sanitized, skip to avoid double hashing.
