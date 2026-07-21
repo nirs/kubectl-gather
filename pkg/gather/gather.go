@@ -513,8 +513,6 @@ func (g *Gatherer) getResource(r *resourceInfo, name types.NamespacedName) (*uns
 }
 
 func (g *Gatherer) dumpResource(r *resourceInfo, item *unstructured.Unstructured) error {
-	g.sanitizeResource(item)
-
 	dst, err := g.createResource(r, item)
 	if err != nil {
 		return err

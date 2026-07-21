@@ -16,20 +16,19 @@ import (
 
 var testSalt = Salt{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 
-func TestSanitizeResource(t *testing.T) {
+func TestSanitizeSecret(t *testing.T) {
 	tests := []string{
 		"secret-with-data",
 		"secret-with-annotations",
 		"secret-empty",
-		"configmap",
 	}
 
-	g := newTestGatherer(testSalt)
+	log := zap.NewNop().Sugar()
 
 	for _, name := range tests {
 		t.Run(name, func(t *testing.T) {
 			obj := loadTestdata(t, name+".yaml")
-			g.sanitizeResource(obj)
+			sanitizeSecret(obj, testSalt, log)
 			actual := marshalYAML(t, obj.Object)
 
 			golden := filepath.Join("testdata", "sanitize", name+".golden.yaml")
@@ -45,13 +44,13 @@ func TestSanitizeResource(t *testing.T) {
 }
 
 func TestSanitizeSecretIdempotent(t *testing.T) {
-	g := newTestGatherer(testSalt)
+	log := zap.NewNop().Sugar()
 
 	obj := loadTestdata(t, "secret-with-data.yaml")
-	g.sanitizeResource(obj)
+	sanitizeSecret(obj, testSalt, log)
 	expected := marshalYAML(t, obj.Object)
 
-	g.sanitizeResource(obj)
+	sanitizeSecret(obj, testSalt, log)
 	actual := marshalYAML(t, obj.Object)
 
 	if expected != actual {
@@ -60,14 +59,15 @@ func TestSanitizeSecretIdempotent(t *testing.T) {
 }
 
 func TestSanitizeSecretDifferentSalts(t *testing.T) {
-	g1 := newTestGatherer(RandomSalt())
-	g2 := newTestGatherer(RandomSalt())
+	log := zap.NewNop().Sugar()
+	salt1 := RandomSalt()
+	salt2 := RandomSalt()
 
 	s1 := loadTestdata(t, "secret-with-data.yaml")
 	s2 := loadTestdata(t, "secret-with-data.yaml")
 
-	g1.sanitizeResource(s1)
-	g2.sanitizeResource(s2)
+	sanitizeSecret(s1, salt1, log)
+	sanitizeSecret(s2, salt2, log)
 
 	d1, found, err := unstructured.NestedStringMap(s1.Object, "data")
 	if err != nil || !found {
@@ -101,15 +101,6 @@ func BenchmarkHashValue(b *testing.B) {
 }
 
 // Test helpers
-
-func newTestGatherer(salt Salt) *Gatherer {
-	return &Gatherer{
-		opts: &Options{
-			Salt: salt,
-			Log:  zap.NewNop().Sugar(),
-		},
-	}
-}
 
 func loadTestdata(t *testing.T, name string) *unstructured.Unstructured {
 	t.Helper()

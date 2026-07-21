@@ -560,10 +560,18 @@ needed for validation.
 Gathers ceph commands output and external logs from nodes for
 CephClusters.
 
+### secrets
+
+Sanitizes Secret resources by replacing data values with deterministic
+PBKDF2-HMAC-SHA256 hashes. The secrets addon is always enabled unless
+`--insecure-secrets` is set. See [Secret
+sanitization](#secret-sanitization) for more info.
+
 ### Enabling specific addons
 
 To control which addons are enabled, use the `--addons` flag. If the
-flag is not set all addons are enabled.
+flag is not set all addons are enabled. The secrets addon is always
+included unless `--insecure-secrets` is set.
 
 Gathering only resources:
 
@@ -571,7 +579,7 @@ Gathering only resources:
 $ kubectl gather --contexts dr1,dr2 --addons= -d gather.resources
 2024-06-01T02:13:08.117+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-06-01T02:13:08.118+0300	INFO	gather	Gathering from all namespaces
-2024-06-01T02:13:08.119+0300	INFO	gather	Using addons []
+2024-06-01T02:13:08.119+0300	INFO	gather	Using addons ["secrets"]
 2024-06-01T02:13:08.119+0300	INFO	gather	Gathering from cluster "dr1"
 2024-06-01T02:13:08.119+0300	INFO	gather	Gathering from cluster "dr2"
 2024-06-01T02:13:08.942+0300	INFO	gather	Gathered 557 resources from cluster "dr1" in 0.823 seconds
@@ -585,7 +593,7 @@ Gathering resource and pod container logs:
 $ kubectl gather --contexts dr1,dr2 --addons logs -d gather.logs
 2024-06-01T02:12:07.775+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-06-01T02:12:07.776+0300	INFO	gather	Gathering from all namespaces
-2024-06-01T02:12:07.777+0300	INFO	gather	Using addons ["logs"]
+2024-06-01T02:12:07.777+0300	INFO	gather	Using addons ["logs","secrets"]
 2024-06-01T02:12:07.777+0300	INFO	gather	Gathering from cluster "dr1"
 2024-06-01T02:12:07.777+0300	INFO	gather	Gathering from cluster "dr2"
 2024-06-01T02:12:11.580+0300	INFO	gather	Gathered 553 resources from cluster "dr2" in 3.803 seconds
@@ -618,10 +626,14 @@ $ du -sh gather.*
 
 ## Secret sanitization
 
-All Secret resources are automatically sanitized before writing. Each
-data value is replaced with a deterministic PBKDF2-HMAC-SHA256 hash,
-and the `kubectl.kubernetes.io/last-applied-configuration` annotation
-is stripped to prevent plaintext leaks.
+The `secrets` addon automatically sanitizes all Secret resources before
+writing. Each data value is replaced with a deterministic
+PBKDF2-HMAC-SHA256 hash, and the
+`kubectl.kubernetes.io/last-applied-configuration` annotation is
+stripped to prevent plaintext leaks. The secrets addon is always enabled
+unless `--insecure-secrets` is set. Use `--insecure-secrets` to disable
+sanitization for debugging or in test environments where secrets are not
+sensitive.
 
 A `kubectl-gather.nirs.github.com/sanitized` annotation is added to
 each sanitized secret with the base64-encoded salt. The salt can be
