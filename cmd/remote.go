@@ -96,9 +96,13 @@ func mustGatherCommand(context string, directory string) *exec.Cmd {
 		remoteArgs = append(remoteArgs, "--addons="+strings.Join(addons, ","))
 	}
 
-	// Always pass the salt so all remote clusters use the same salt value,
-	// ensuring consistent hashes for comparing secrets across clusters.
-	remoteArgs = append(remoteArgs, "--salt="+salt)
+	if insecureSecrets {
+		remoteArgs = append(remoteArgs, "--insecure-secrets")
+	} else {
+		// Pass the salt so all remote clusters use the same salt value,
+		// ensuring consistent hashes for comparing secrets across clusters.
+		remoteArgs = append(remoteArgs, "--salt="+salt)
+	}
 
 	if len(remoteArgs) > 0 {
 		args = append(args, "--", "/usr/bin/gather")

@@ -28,6 +28,7 @@ var namespaces []string
 var addons []string
 var cluster bool
 var remote bool
+var insecureSecrets bool
 var salt string
 var parsedSalt gather.Salt
 var verbose bool
@@ -52,8 +53,8 @@ var example = `  # Gather data from all namespaces in current context in my-kube
   # clusters use the same salt for consistent secret hashing.
   kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" --directory gather.remote
 
-  # Enable only the "logs" addon, gathering all resources and pod logs. Use
-  # --addons= to disable all addons.
+  # Enable only the "logs" addon, gathering all resources and pod logs.
+  # The secrets addon is always included unless --insecure-secrets is set.
   kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs
 
   # Gather both cluster and namespace resources from "my-ns" and "other-ns" in clusters
@@ -102,6 +103,8 @@ func init() {
 			"specified, gather all resources")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
+	rootCmd.Flags().BoolVar(&insecureSecrets, "insecure-secrets", false,
+		"disable secret sanitization for debugging or testing")
 	rootCmd.Flags().StringVar(&salt, "salt", "",
 		"base64-encoded 16-byte salt for secret hashing (default: randomly generated)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
@@ -145,10 +148,12 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	if cmd.Flags().Changed("salt") {
-		log.Infof("Using user-provided salt %q", salt)
-	} else {
-		log.Infof("Using generated salt %q", salt)
+	if !insecureSecrets {
+		if cmd.Flags().Changed("salt") {
+			log.Infof("Using user-provided salt %q", salt)
+		} else {
+			log.Infof("Using generated salt %q", salt)
+		}
 	}
 
 	if namespaces == nil {
@@ -179,16 +184,37 @@ func runGather(cmd *cobra.Command, args []string) {
 }
 
 func validateOptions(cmd *cobra.Command) error {
-	if salt != "" {
-		var err error
-		parsedSalt, err = validateSalt(salt)
-		if err != nil {
-			return err
+	if insecureSecrets && cmd.Flags().Changed("salt") {
+		return fmt.Errorf("--salt and --insecure-secrets cannot be used together")
+	}
+
+	if !insecureSecrets {
+		if salt != "" {
+			var err error
+			parsedSalt, err = validateSalt(salt)
+			if err != nil {
+				return err
+			}
+		} else {
+			parsedSalt = gather.RandomSalt()
+			// Keep the base64 salt string for logging and passing to remote clusters.
+			salt = base64.StdEncoding.EncodeToString(parsedSalt[:])
 		}
-	} else {
-		parsedSalt = gather.RandomSalt()
-		// Keep the base64 salt string for logging and passing to remote clusters.
-		salt = base64.StdEncoding.EncodeToString(parsedSalt[:])
+	}
+
+	if insecureSecrets {
+		// When --insecure-secrets is set and --addons is not specified, addons
+		// is nil which enables all addons including secrets. Build an explicit
+		// list excluding secrets so addonEnabled skips it.
+		if addons == nil {
+			for _, name := range gather.AvailableAddons() {
+				if name != "secrets" {
+					addons = append(addons, name)
+				}
+			}
+		}
+	} else if addons != nil && !slices.Contains(addons, "secrets") {
+		addons = append(addons, "secrets")
 	}
 
 	// --namespaces=""
