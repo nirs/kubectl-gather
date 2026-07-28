@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -138,6 +139,50 @@ func TestGatherRemote(dt *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
+		"--remote",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd, t.Log); err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", err)
+	}
+
+	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
+	t.Debugf("Data root: %s", dataRoot)
+
+	validateGatherAll(t, validate.New(outputDir).WithDataRoot(dataRoot))
+}
+
+func TestGatherMultipleKubeconfigs(dt *testing.T) {
+	t := test.WithLog(dt)
+	outputDir := "out/test-gather-multi-kubeconfig"
+
+	kubeconfigs := exportKubeconfigs(t)
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--kubeconfig", strings.Join(kubeconfigs, ","),
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd, t.Log); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
+	}
+
+	validateGatherAll(t, validate.New(outputDir))
+}
+
+func TestGatherMultipleKubeconfigsRemote(dt *testing.T) {
+	t := test.WithLog(dt)
+	if _, err := exec.LookPath("oc"); err != nil {
+		t.Skip("oc not found, skipping remote test")
+	}
+
+	outputDir := "out/test-gather-multi-kubeconfig-remote"
+
+	kubeconfigs := exportKubeconfigs(t)
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--kubeconfig", strings.Join(kubeconfigs, ","),
 		"--remote",
 		"--directory", outputDir,
 	)
@@ -524,6 +569,36 @@ func TestJSONLogs(dt *testing.T) {
 }
 
 // Test helpers
+
+// exportKubeconfigs exports a separate kubeconfig file for each cluster,
+// simulating the multi-kubeconfig workflow where each file was exported from a
+// different system. Files are named after the cluster (e.g. "c1.yaml") so the
+// derived cluster name matches the expected directory layout.
+func exportKubeconfigs(t *test.T) []string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	var paths []string
+	for _, name := range clusters.Names {
+		path := filepath.Join(dir, name+".yaml")
+		cmd := exec.Command(
+			"kubectl", "config", "view",
+			"--minify",
+			"--flatten",
+			"--context", name,
+		)
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("failed to export kubeconfig for context %q: %s", name, err)
+		}
+		if err := os.WriteFile(path, out, 0600); err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, path)
+	}
+	return paths
+}
 
 func validateGatherAll(t *test.T, v *validate.Validator) {
 	t.Helper()
