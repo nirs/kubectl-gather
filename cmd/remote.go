@@ -80,6 +80,9 @@ func mustGatherCommand(config *kubeconfig.Config, directory string) *exec.Cmd {
 	if config.Kubeconfig != "" {
 		args = append(args, "--kubeconfig="+config.Kubeconfig)
 	}
+	if insecureSkipTLSVerify {
+		args = append(args, "--insecure-skip-tls-verify")
+	}
 
 	var remoteArgs []string
 

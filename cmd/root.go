@@ -29,6 +29,7 @@ var namespaces []string
 var addons []string
 var cluster bool
 var remote bool
+var insecureSkipTLSVerify bool
 var salt string
 var parsedSalt gather.Salt
 var verbose bool
@@ -106,6 +107,8 @@ func init() {
 			"specified, gather all resources")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
+	rootCmd.Flags().BoolVar(&insecureSkipTLSVerify, "insecure-skip-tls-verify", false,
+		"if true, the server's certificate will not be checked for validity (remote gather only)")
 	rootCmd.Flags().StringVar(&salt, "salt", "",
 		"base64-encoded 16-byte salt for secret hashing (default: randomly generated)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
