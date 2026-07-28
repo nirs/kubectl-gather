@@ -29,6 +29,33 @@ jobs:
         with:
           version: latest
 
+  # Ensure that the code is compatible with the go version from go.mod. Go
+  # enforces syntax but does not prevent calling functions from the standard
+  # library that are not available in the minimum go version. This job
+  # ensures the code is really compatible with the specified go version.
+  go-compatibility:
+    name: Go compatibility
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Extract go version
+        id: go-version
+        run: |
+          version=$(awk '/^go [0-9]/ {print $2}' go.mod)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ steps.go-version.outputs.version }}
+
+      - name: Build kubectl-gather
+        run: make
+
   build-matrix:
     name: Build (${{ matrix.goos }}-${{ matrix.goarch }})
     runs-on: ubuntu-latest
