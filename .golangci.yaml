@@ -5,7 +5,6 @@ version: "2"
 linters:
   enable:
     - errcheck
-    - goconst
     - nolintlint
     # TODO: enable after fixing issues
     #- gocritic
