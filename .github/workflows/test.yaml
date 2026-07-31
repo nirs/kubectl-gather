@@ -13,6 +13,22 @@ permissions:
 
 jobs:
 
+  tidy:
+    name: Go Mod Tidy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check go modules are tidy
+        run: |
+          go mod tidy
+          git --no-pager diff --exit-code
+
   lint:
     name: Check code
     runs-on: ubuntu-latest
