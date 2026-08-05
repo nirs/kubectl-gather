@@ -41,6 +41,7 @@ func localGather(clusterConfigs []*kubeconfig.Config) {
 			Namespaces: namespaces,
 			Addons:     addons,
 			Cluster:    cluster,
+			Workers:    workers,
 			Salt:       parsedSalt,
 			Log:        log.Named(clusterConfig.Name),
 		}
