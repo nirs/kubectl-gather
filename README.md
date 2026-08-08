@@ -733,7 +733,7 @@ small when gathering only a few namespaces.
 ## Integrating with other programs
 
 When running the *kubectl gather* from another program you may want to
-use JSON logs to extract certain fileds from the gather logs.
+use JSON logs to extract certain fields from the gather logs.
 
 Example: extracting the "msg" field from gather JSON logs:
 

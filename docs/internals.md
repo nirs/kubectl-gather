@@ -5,7 +5,7 @@
 kubectl-gather fetch and process data in a 3 steps pipeline:
 
 ```
-prepare --> gather --> inpsect
+prepare --> gather --> inspect
 ```
 
 ### Prepare step
