@@ -37,6 +37,7 @@ jobs:
         md5sum: FALSE
         compress_assets: OFF
         build_command: make
+        asset_name: kubectl-gather-${{ matrix.goos }}-${{ matrix.goarch }}
 
   container:
     name: Container
