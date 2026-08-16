@@ -63,7 +63,7 @@ The simplest way is to gather everything from the current cluster named
 "hub":
 
 ```
-$ kubectl gather -d gather.one
+$ kubectl gather -o gather.one
 2024-05-27T23:03:58.838+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-27T23:03:58.840+0300	INFO	gather	Using current context "hub"
 2024-05-27T23:03:58.841+0300	INFO	gather	Gathering from all namespaces
@@ -129,7 +129,7 @@ CURRENT   NAME          CLUSTER         AUTHINFO        NAMESPACE
 To gather data from all clusters run:
 
 ```
-$ kubectl gather --contexts hub,dr1,dr2 -d gather.all
+$ kubectl gather --contexts hub,dr1,dr2 -o gather.all
 2024-05-27T23:16:16.459+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-27T23:16:16.460+0300	INFO	gather	Gathering from all namespaces
 2024-05-27T23:16:16.460+0300	INFO	gather	Gathering from cluster "hub"
@@ -212,7 +212,7 @@ To gather from separate kubeconfig files, pass them all to
 `--kubeconfig`:
 
 ```
-$ kubectl gather --kubeconfig ocp/hub.yaml,ocp/c1.yaml,ocp/c2.yaml -d gather.dr
+$ kubectl gather --kubeconfig ocp/hub.yaml,ocp/c1.yaml,ocp/c2.yaml -o gather.dr
 2026-05-06T00:15:32.100+0300	INFO	gather	Using cluster "hub" from kubeconfig "ocp/hub.yaml"
 2026-05-06T00:15:32.101+0300	INFO	gather	Using cluster "c1" from kubeconfig "ocp/c1.yaml"
 2026-05-06T00:15:32.102+0300	INFO	gather	Using cluster "c2" from kubeconfig "ocp/c2.yaml"
@@ -251,7 +251,7 @@ The cluster name is always derived from the filename, even for a single
 file:
 
 ```
-$ kubectl gather --kubeconfig hub.yaml -d gather.one
+$ kubectl gather --kubeconfig hub.yaml -o gather.one
 2026-05-06T00:15:32.100+0300	INFO	gather	Using cluster "hub" from kubeconfig "hub.yaml"
 2026-05-06T00:15:32.100+0300	INFO	gather	Gathering from all namespaces
 2026-05-06T00:15:32.100+0300	INFO	gather	Gathering from cluster "hub"
@@ -275,7 +275,7 @@ state, the namespace can be also on cluster "dr2".
 To gather the "deployment-rbd" namespace from all clusters use:
 
 ```
-$ kubectl gather --contexts hub,dr1,dr2 -n deployment-rbd -d gather.before
+$ kubectl gather --contexts hub,dr1,dr2 -n deployment-rbd -o gather.before
 2024-05-27T23:33:45.883+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-27T23:33:45.888+0300	INFO	gather	Gathering from namespaces [deployment-rbd]
 2024-05-27T23:33:45.888+0300	INFO	gather	Gathering from cluster "hub"
@@ -329,7 +329,7 @@ data again to compare the application state before and after the
 failover:
 
 ```
-$ kubectl gather --contexts hub,dr1,dr2 -n deployment-rbd -d gather.after
+$ kubectl gather --contexts hub,dr1,dr2 -n deployment-rbd -o gather.after
 2024-05-27T23:45:20.292+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-27T23:45:20.297+0300	INFO	gather	Gathering from namespaces [deployment-rbd]
 2024-05-27T23:45:20.297+0300	INFO	gather	Gathering from cluster "hub"
@@ -402,7 +402,7 @@ just those related to your namespaced resources.
 To gather specific namespaces along with cluster scoped resources:
 
 ```
-$ kubectl-gather --contexts dr1,dr2 --namespaces=e2e-appset-deploy-cephfs --cluster --directory gather.mixed
+$ kubectl-gather --contexts dr1,dr2 --namespaces=e2e-appset-deploy-cephfs --cluster --output-dir gather.mixed
 2025-08-01T14:25:15.029+0530	INFO	gather	Using kubeconfig "/Users/pari/.kube/config"
 2025-08-01T14:25:15.031+0530	INFO	gather	Gathering from namespaces ["e2e-appset-deploy-cephfs"]
 2025-08-01T14:25:15.031+0530	INFO	gather	Gathering cluster scoped resources
@@ -491,7 +491,7 @@ In this example we gather data from OpenShift Data Foundation clusters
 configured for disaster recovery. Gathering everything takes more than 6
 minutes:
 
-    $ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --remote --salt "$(openssl rand -base64 16)" --directory gather.remote
+    $ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --remote --salt "$(openssl rand -base64 16)" --output-dir gather.remote
     2024-05-28T20:57:32.684+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
     2024-05-28T20:57:32.686+0300	INFO	gather	Gathering from all namespaces
     2024-05-28T20:57:32.686+0300	INFO	gather	Gathering on remote cluster "kevin-rdr-c2"
@@ -567,7 +567,7 @@ Gathering only specific namespaces from these clusters is much quicker.
 In this example we gather data related to single DR protected VM:
 
 ```
-$ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --namespaces openshift-dr-ops,ui-vms3 --remote --salt "$(openssl rand -base64 16)" -d gather.remote.app
+$ kubectl gather --contexts kevin-rdr-hub,kevin-rdr-c1,kevin-rdr-c2 --namespaces openshift-dr-ops,ui-vms3 --remote --salt "$(openssl rand -base64 16)" -o gather.remote.app
 2024-05-28T21:14:15.883+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-05-28T21:14:15.884+0300	INFO	gather	Gathering from namespaces [openshift-dr-ops ui-vms3]
 2024-05-28T21:14:15.884+0300	INFO	gather	Gathering on remote cluster "kevin-rdr-c2"
@@ -631,7 +631,7 @@ flag is not set all addons are enabled.
 Gathering only resources:
 
 ```
-$ kubectl gather --contexts dr1,dr2 --addons= -d gather.resources
+$ kubectl gather --contexts dr1,dr2 --addons= -o gather.resources
 2024-06-01T02:13:08.117+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-06-01T02:13:08.118+0300	INFO	gather	Gathering from all namespaces
 2024-06-01T02:13:08.119+0300	INFO	gather	Using addons []
@@ -645,7 +645,7 @@ $ kubectl gather --contexts dr1,dr2 --addons= -d gather.resources
 Gathering resource and pod container logs:
 
 ```
-$ kubectl gather --contexts dr1,dr2 --addons logs -d gather.logs
+$ kubectl gather --contexts dr1,dr2 --addons logs -o gather.logs
 2024-06-01T02:12:07.775+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-06-01T02:12:07.776+0300	INFO	gather	Gathering from all namespaces
 2024-06-01T02:12:07.777+0300	INFO	gather	Using addons ["logs"]
@@ -659,7 +659,7 @@ $ kubectl gather --contexts dr1,dr2 --addons logs -d gather.logs
 Gathering everything:
 
 ```
-$ kubectl gather --contexts dr1,dr2 -d gather.all
+$ kubectl gather --contexts dr1,dr2 -o gather.all
 2024-06-01T02:11:46.490+0300	INFO	gather	Using kubeconfig "/home/nsoffer/.kube/config"
 2024-06-01T02:11:46.492+0300	INFO	gather	Gathering from all namespaces
 2024-06-01T02:11:46.492+0300	INFO	gather	Using all addons
@@ -710,7 +710,7 @@ By default a random salt is generated. To use a specific salt, use the
 same salt.
 
 ```
-$ kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" -d gather.remote
+$ kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" -o gather.remote
 ```
 
 Specifying a salt is also useful when comparing changes between two
@@ -718,9 +718,9 @@ gather runs:
 
 ```
 salt=$(openssl rand -base64 16)
-kubectl gather --contexts hub,dr1,dr2 -d gather.a --salt "$salt"
+kubectl gather --contexts hub,dr1,dr2 -o gather.a --salt "$salt"
 sleep 60
-kubectl gather --contexts hub,dr1,dr2 -d gather.b --salt "$salt"
+kubectl gather --contexts hub,dr1,dr2 -o gather.b --salt "$salt"
 diff -ur gather.a gather.b
 ```
 

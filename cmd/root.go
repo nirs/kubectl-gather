@@ -45,27 +45,27 @@ var example = `  # Gather data from all namespaces in current context in my-kube
 
   # Gather data from all namespaces in clusters "dr1", "dr2" and "hub" and store
   # it in "gather.local/", using default kubeconfig (~/.kube/config).
-  kubectl gather --contexts dr1,dr2,hub --directory gather.local
+  kubectl gather --contexts dr1,dr2,hub --output-dir gather.local
 
   # Gather data from namespaces "my-ns" and "other-ns" in clusters "dr1", "dr2",
   # and "hub", and store it in "gather.ns/".
-  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --directory gather.ns
+  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --output-dir gather.ns
 
   # Gather data on the remote clusters "dr1", "dr2" and "hub" and download it to
   # "gather.remote/". Requires the "oc" command. Use --salt to ensure all remote
   # clusters use the same salt for consistent secret hashing.
-  kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" --directory gather.remote
+  kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" --output-dir gather.remote
 
   # Enable only the "logs" addon, gathering all resources and pod logs. Use
   # --addons= to disable all addons.
-  kubectl gather --contexts dr1,dr2,hub --addons logs --directory gather.resources+logs
+  kubectl gather --contexts dr1,dr2,hub --addons logs --output-dir gather.resources+logs
 
   # Gather both cluster and namespace resources from "my-ns" and "other-ns" in clusters
   # "dr1", "dr2", and "hub".
-  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --cluster --directory gather.mixed
+  kubectl gather --contexts dr1,dr2,hub --namespaces my-ns,other-ns --cluster --output-dir gather.mixed
 
   # Gather only cluster resources from clusters "dr1", "dr2" and "hub".
-  kubectl gather --contexts dr1,dr2,hub --namespace="" --cluster --directory gather.cluster`
+  kubectl gather --contexts dr1,dr2,hub --namespace="" --cluster --output-dir gather.cluster`
 
 var rootCmd = &cobra.Command{
 	Use:     "kubectl-gather",
@@ -85,8 +85,11 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&directory, "directory", "d", "",
-		"directory for storing gathered data (default \"gather.{timestamp}\")")
+	rootCmd.Flags().StringVarP(&directory, "output-dir", "o", "",
+		"output directory for storing gathered data (default \"gather.{timestamp}\")")
+	// Keep the old flag for backward compatibility with existing scripts.
+	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "")
+	_ = rootCmd.Flags().MarkDeprecated("directory", "use -o, --output-dir")
 
 	// Don't set default kubeconfig, so kubeconfig is empty unless the user
 	// specified the option. This is required to allow running remote commands
@@ -186,7 +189,7 @@ func runGather(cmd *cobra.Command, args []string) {
 		log.Infof("Using all addons")
 	}
 
-	if !cmd.Flags().Changed("directory") {
+	if !cmd.Flags().Changed("output-dir") && !cmd.Flags().Changed("directory") {
 		log.Infof("Storing data in %q", directory)
 	}
 

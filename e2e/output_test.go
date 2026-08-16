@@ -28,7 +28,7 @@ func TestOutput(t *testing.T) {
 		cmd := exec.Command(
 			kubectlGather,
 			"--contexts", clusters.C1,
-			"--directory", outputDir,
+			"--output-dir", outputDir,
 		)
 		if err := commands.Run(cmd, t.Log); err != nil {
 			t.Fatal(err)
@@ -51,7 +51,7 @@ func TestOutput(t *testing.T) {
 			kubectlGather,
 			"--contexts", clusters.C1,
 			"--remote",
-			"--directory", outputDir,
+			"--output-dir", outputDir,
 		)
 		if err := commands.Run(cmd, t.Log); err != nil {
 			t.Fatal(err)
@@ -173,7 +173,7 @@ func TestSecretSanitization(dt *testing.T) {
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--salt", saltB64,
-		"--directory", outputDir,
+		"--output-dir", outputDir,
 	)
 	if err := commands.Run(cmd, t.Log); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
@@ -199,7 +199,7 @@ func TestSecretSanitizationRandomSalt(dt *testing.T) {
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
-		"--directory", outputDir,
+		"--output-dir", outputDir,
 	)
 	if err := commands.Run(cmd, t.Log); err != nil {
 		t.Fatalf("kubectl-gather failed: %s", err)
