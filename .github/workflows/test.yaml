@@ -51,10 +51,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Run golangci-lint
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+          install-only: true
+      - name: Run lint
+        run: make lint
 
   # Ensure that the code is compatible with the go version from go.mod. Go
   # enforces syntax but does not prevent calling functions from the standard
