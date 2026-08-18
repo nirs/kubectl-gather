@@ -7,16 +7,22 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
 	logsName = "logs"
+
+	// Number of attempts to copy a container log when the stream is
+	// interrupted by a graceful shutdown of the connection.
+	logStreamAttempts = 3
 )
 
 type LogsAddon struct {
@@ -89,14 +95,38 @@ func (a *LogsAddon) Inspect(pod *unstructured.Unstructured, _ *time.Time) error 
 }
 
 func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.PodLogOptions) {
-	start := time.Now()
-
 	which := "current"
 	if opts.Previous {
 		which = "previous"
 	}
 
 	req := a.client.CoreV1().Pods(container.Namespace).GetLogs(container.Pod, opts)
+
+	for attempt := 1; ; attempt++ {
+		err := a.streamContainerLog(container, which, req, attempt)
+		if err == nil {
+			return
+		}
+
+		if attempt == logStreamAttempts || !isGoAwayError(err) {
+			a.log.Warnf("Cannot copy \"%s/%s.log\": %s", container, which, err)
+			return
+		}
+	}
+}
+
+// streamContainerLog copies a container log to the output directory, truncating
+// data copied by a previous attempt. Returns the copy error; other errors are
+// logged.
+func (a *LogsAddon) streamContainerLog(
+	container *containerInfo,
+	which string,
+	req *rest.Request,
+	attempt int,
+) error {
+	start := time.Now()
+
+	a.log.Debugf("Gathering \"%s/%s.log\" (%d/%d)", container, which, attempt, logStreamAttempts)
 
 	src, err := req.Stream(context.TODO())
 	if err != nil {
@@ -107,29 +137,47 @@ func (a *LogsAddon) gatherContainerLog(container *containerInfo, opts *corev1.Po
 		// Since this is expected situation, and getting logs is best effort, we
 		// log this in debug level.
 		a.log.Debugf("Cannot get log for \"%s/%s\": %v", container, which, err)
-		return
+		return nil
 	}
 
 	defer src.Close()
 
 	dst, err := a.Output().CreateContainerLog(
-		container.Namespace, container.Pod, container.Name, string(which))
+		container.Namespace, container.Pod, container.Name, which)
 	if err != nil {
 		a.log.Warnf("Cannot create \"%s/%s.log\": %s", container, which, err)
-		return
+		return nil
 	}
 
-	defer dst.Close()
+	defer func() {
+		if err := dst.Close(); err != nil {
+			a.log.Warnf("Cannot close \"%s/%s.log\": %s", container, which, err)
+		}
+	}()
 
 	n, err := io.Copy(dst, src)
-	if err != nil {
-		a.log.Warnf("Cannot copy \"%s/%s.log\": %s", container, which, err)
-	}
 
 	elapsed := time.Since(start).Seconds()
+
+	if err != nil {
+		a.log.Debugf("Failed \"%s/%s.log\" in %.3f seconds: %s", container, which, elapsed, err)
+		return err
+	}
+
 	rate := float64(n) / float64(1024*1024) / elapsed
 	a.log.Debugf("Gathered \"%s/%s.log\" in %.3f seconds (%.2f MiB/s)",
 		container, which, elapsed, rate)
+
+	return nil
+}
+
+// isGoAwayError tells if the stream was interrupted by a GOAWAY frame, sent
+// when the server closes the connection gracefully (RFC 9113 section 6.8). We
+// cannot use errors.As since net/http bundles a private copy of the http2
+// package using an unexported error type, see
+// https://github.com/golang/go/issues/28930.
+func isGoAwayError(err error) bool {
+	return strings.Contains(err.Error(), "http2: server sent GOAWAY")
 }
 
 func (a *LogsAddon) listContainers(pod *unstructured.Unstructured) ([]*containerInfo, error) {
