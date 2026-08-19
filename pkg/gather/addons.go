@@ -33,6 +33,12 @@ type AddonBackend interface {
 
 	// GatherResource gathers the specified resource asynchronically.
 	GatherResource(schema.GroupVersionResource, types.NamespacedName)
+
+	// ResourceForKind returns the plural resource name for the given group
+	// and kind (e.g. ResourceForKind("", "PersistentVolume") returns
+	// "persistentvolumes"), based on api resources discovered from the
+	// cluster. Returns an empty string if the kind is not found.
+	ResourceForKind(group, kind string) string
 }
 
 // addonMeta provides common addon metadata like name.

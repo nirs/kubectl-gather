@@ -66,18 +66,24 @@ type Addon interface {
 	Inspect(*unstructured.Unstructured, *time.Time) error
 }
 
+type kindKey struct {
+	Group string
+	Kind  string
+}
+
 type Gatherer struct {
-	config       *rest.Config
-	httpClient   *http.Client
-	client       *dynamic.DynamicClient
-	addons       map[string]Addon
-	output       OutputDirectory
-	opts         *Options
-	gatherQueue  *WorkQueue
-	inspectQueue *WorkQueue
-	log          *zap.SugaredLogger
-	mutex        sync.Mutex
-	resources    map[string]struct{}
+	config          *rest.Config
+	httpClient      *http.Client
+	client          *dynamic.DynamicClient
+	addons          map[string]Addon
+	output          OutputDirectory
+	opts            *Options
+	gatherQueue     *WorkQueue
+	inspectQueue    *WorkQueue
+	log             *zap.SugaredLogger
+	mutex           sync.Mutex
+	resources       map[string]struct{}
+	resourceForKind map[kindKey]string
 }
 
 type resourceInfo struct {
@@ -123,15 +129,16 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	}
 
 	g := &Gatherer{
-		config:       config,
-		httpClient:   httpClient,
-		client:       client,
-		output:       OutputDirectory{base: directory},
-		opts:         &opts,
-		gatherQueue:  NewWorkQueue(workQueueSize),
-		inspectQueue: NewWorkQueue(workQueueSize),
-		log:          opts.Log,
-		resources:    make(map[string]struct{}),
+		config:          config,
+		httpClient:      httpClient,
+		client:          client,
+		output:          OutputDirectory{base: directory},
+		opts:            &opts,
+		gatherQueue:     NewWorkQueue(workQueueSize),
+		inspectQueue:    NewWorkQueue(workQueueSize),
+		log:             opts.Log,
+		resources:       make(map[string]struct{}),
+		resourceForKind: make(map[kindKey]string),
 	}
 
 	backend := &gatherBackend{
@@ -303,6 +310,7 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 				GroupVersionResource: gv.WithResource(res.Name),
 				Namespaced:           res.Namespaced,
 			})
+			g.resourceForKind[kindKey{Group: gv.Group, Kind: res.Kind}] = res.Name
 		}
 	}
 
@@ -313,6 +321,14 @@ func (g *Gatherer) listAPIResources() ([]resourceInfo, error) {
 	)
 
 	return resources, nil
+}
+
+// ResourceForKind returns the plural resource name for the given group and
+// kind, as discovered from the cluster api resources during prepare. Returns
+// an empty string if the kind was not found (e.g. the api resource list has
+// not been gathered yet, or the kind does not exist on this cluster).
+func (g *Gatherer) ResourceForKind(group, kind string) string {
+	return g.resourceForKind[kindKey{Group: group, Kind: kind}]
 }
 
 // gatherNamespaces gathers the requested namespaces and return a list of
