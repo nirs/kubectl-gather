@@ -90,6 +90,7 @@ func init() {
 	// Keep the old flag for backward compatibility with existing scripts.
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "")
 	_ = rootCmd.Flags().MarkDeprecated("directory", "use -o, --output-dir")
+	rootCmd.MarkFlagsMutuallyExclusive("output-dir", "directory")
 
 	// Don't set default kubeconfig, so kubeconfig is empty unless the user
 	// specified the option. This is required to allow running remote commands
