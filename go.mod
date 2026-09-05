@@ -2,7 +2,7 @@ module github.com/nirs/kubectl-gather
 
 go 1.25.0
 
-toolchain go1.26.2
+toolchain go1.26.5
 
 require (
 	github.com/aymanbagabas/go-udiff v0.4.1
