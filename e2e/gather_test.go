@@ -104,8 +104,8 @@ func TestGatherLocal(dt *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
@@ -121,8 +121,8 @@ func TestGatherClusterTrue(dt *testing.T) {
 		"--cluster=true",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
@@ -142,8 +142,8 @@ func TestGatherRemote(dt *testing.T) {
 		"--remote",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Fatalf("kubectl-gather --remote failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", r.Err)
 	}
 
 	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -163,8 +163,8 @@ func TestGatherMultipleKubeconfigs(dt *testing.T) {
 		"--kubeconfig", strings.Join(kubeconfigs, ","),
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
@@ -186,8 +186,8 @@ func TestGatherMultipleKubeconfigsRemote(dt *testing.T) {
 		"--remote",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Fatalf("kubectl-gather --remote failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", r.Err)
 	}
 
 	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -206,8 +206,8 @@ func TestGatherClusterFalse(dt *testing.T) {
 		"--cluster=false",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -256,7 +256,7 @@ func TestGatherEmptyNamespaces(dt *testing.T) {
 		"--namespaces=", "",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err == nil {
+	if r := commands.Run(cmd, t.Log); r.Err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
@@ -274,7 +274,7 @@ func TestGatherEmptyNamespacesClusterFalse(dt *testing.T) {
 		"--cluster=false",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err == nil {
+	if r := commands.Run(cmd, t.Log); r.Err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
@@ -292,8 +292,8 @@ func TestGatherEmptyNamespacesClusterTrue(dt *testing.T) {
 		"--cluster=true",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -342,8 +342,8 @@ func TestGatherSpecificNamespaces(dt *testing.T) {
 		"--namespaces", "test-common,test-c1",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validateSpecificNamespaces(t, validate.New(outputDir))
@@ -360,8 +360,8 @@ func TestGatherSpecificNamespacesClusterFalse(dt *testing.T) {
 		"--cluster=false",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validateSpecificNamespaces(t, validate.New(outputDir))
@@ -378,8 +378,8 @@ func TestGatherSpecificNamespacesClusterTrue(dt *testing.T) {
 		"--cluster=true",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -423,8 +423,8 @@ func TestGatherAddonsLogs(dt *testing.T) {
 		"--addons", "logs",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -469,8 +469,8 @@ func TestGatherAddonsPVCs(dt *testing.T) {
 		"--addons", "pvcs",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -512,8 +512,8 @@ func TestGatherAddonsEmpty(dt *testing.T) {
 		"--addons=",
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	v := validate.New(outputDir)
@@ -561,8 +561,8 @@ func TestJSONLogs(dt *testing.T) {
 		"--directory", outputDir,
 		"--log-format", "json",
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Errorf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Errorf("kubectl-gather failed: %s", r.Err)
 	}
 
 	validate.JSONLog(t, logPath)

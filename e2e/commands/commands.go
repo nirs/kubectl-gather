@@ -2,22 +2,40 @@ package commands
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"os/exec"
 
 	"go.uber.org/zap"
 )
 
-// Run a command logging lines from stderr.
-func Run(cmd *exec.Cmd, log *zap.SugaredLogger) error {
+// Result holds the outcome of a command run by Run.
+type Result struct {
+	ExitCode int
+	Stdout   bytes.Buffer
+	Stderr   bytes.Buffer
+	Err      error
+}
+
+// Run a command, logging lines from stderr and collecting output in Result.
+func Run(cmd *exec.Cmd, log *zap.SugaredLogger) Result {
+	var result Result
+
 	log.Debugf("Running %v", cmd)
+
+	cmd.Stdout = &result.Stdout
+
 	pipe, err := cmd.StderrPipe()
 	if err != nil {
-		return err
+		result.Err = err
+		return result
 	}
+
 	if err := cmd.Start(); err != nil {
-		return err
+		result.Err = err
+		return result
 	}
+
 	reader := bufio.NewReader(pipe)
 	for {
 		line, _, err := reader.ReadLine()
@@ -28,8 +46,19 @@ func Run(cmd *exec.Cmd, log *zap.SugaredLogger) error {
 			break
 		}
 		log.Debug(string(line))
+		result.Stderr.Write(line)
+		result.Stderr.WriteByte('\n')
 	}
-	return cmd.Wait()
+
+	err = cmd.Wait()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			result.ExitCode = ee.ExitCode()
+		}
+		result.Err = err
+	}
+
+	return result
 }
 
 func Stderr(err error) []byte {

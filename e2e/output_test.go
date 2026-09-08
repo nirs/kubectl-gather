@@ -30,8 +30,8 @@ func TestOutput(t *testing.T) {
 			"--contexts", clusters.C1,
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd, t.Log); err != nil {
-			t.Fatal(err)
+		if r := commands.Run(cmd, t.Log); r.Err != nil {
+			t.Fatal(r.Err)
 		}
 
 		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1))
@@ -53,8 +53,8 @@ func TestOutput(t *testing.T) {
 			"--remote",
 			"--directory", outputDir,
 		)
-		if err := commands.Run(cmd, t.Log); err != nil {
-			t.Fatal(err)
+		if r := commands.Run(cmd, t.Log); r.Err != nil {
+			t.Fatal(r.Err)
 		}
 
 		dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -175,8 +175,8 @@ func TestSecretSanitization(dt *testing.T) {
 		"--salt", saltB64,
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Fatalf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Fatalf("kubectl-gather failed: %s", r.Err)
 	}
 
 	for _, cluster := range clusters.Names {
@@ -201,8 +201,8 @@ func TestSecretSanitizationRandomSalt(dt *testing.T) {
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--directory", outputDir,
 	)
-	if err := commands.Run(cmd, t.Log); err != nil {
-		t.Fatalf("kubectl-gather failed: %s", err)
+	if r := commands.Run(cmd, t.Log); r.Err != nil {
+		t.Fatalf("kubectl-gather failed: %s", r.Err)
 	}
 
 	salts := map[string]struct{}{}
