@@ -92,6 +92,12 @@ func (a *ramenAddon) gatherDRPolicy(item *unstructured.Unstructured) {
 		return
 	}
 
-	gvr := gv.WithResource("drpolicies")
+	resource := a.ResourceForKind(gv.Group, "DRPolicy")
+	if resource == "" {
+		a.log.Warnf("Cannot find resource for kind \"DRPolicy\"")
+		return
+	}
+
+	gvr := gv.WithResource(resource)
 	a.GatherResource(gvr, types.NamespacedName{Name: name})
 }
