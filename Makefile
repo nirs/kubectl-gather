@@ -68,7 +68,10 @@ spell:
 test: unit-tests e2e-tests
 
 unit-tests:
-	go test -v -count=1 ./...
+	mkdir -p out
+	go test -v -count=1 ./... > out/unit-tests.log 2>&1; status=$$?; \
+	cat out/unit-tests.log; \
+	exit $$status
 
 e2e-tests: e2e-build e2e-deploy e2e-container
 	rm -rf e2e/out/test-*
