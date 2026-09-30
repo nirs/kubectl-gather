@@ -58,6 +58,10 @@ all: kubectl-gather
 
 lint:
 	golangci-lint run ./...
+	if golangci-lint run --enable-only=forbidigo ./pkg/gather/testdata/forbidigo; then \
+		echo "probe not flagged"; \
+		exit 1; \
+	fi
 
 fmt:
 	golangci-lint fmt

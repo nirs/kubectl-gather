@@ -6,12 +6,23 @@ linters:
   enable:
     - errcheck
     - nolintlint
+    - forbidigo
     # TODO: enable after fixing issues
     #- gocritic
     #- gosec
     #- misspell
     #- stylecheck
     #- unconvert
+  settings:
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: '^os\.Exit$'
+          msg: "os.Exit() is forbidden in library code; return an error instead"
+        - pattern: '^log\.(Logger\.)?(Fatal|Fatalf|Fatalln)$'
+          msg: "log.Fatal() is forbidden in library code; return an error instead"
+        - pattern: '^zap\.(Logger|SugaredLogger)\.(Fatal|Fatalf|Fatalln|Fatalw)$'
+          msg: "zap Fatal() calls os.Exit; return an error instead"
   exclusions:
     generated: lax
     presets:
@@ -23,6 +34,10 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - path-except: '^pkg/'
+        linters:
+          - forbidigo
 formatters:
   enable:
     - gofmt
