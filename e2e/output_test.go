@@ -220,6 +220,35 @@ func TestSecretSanitizationRandomSalt(dt *testing.T) {
 	}
 }
 
+func TestSecretSanitizationDisabled(dt *testing.T) {
+	t := test.WithLog(dt)
+	outputDir := "out/test-secret-sanitization-disabled"
+
+	cmd := exec.Command(
+		kubectlGather,
+		"--contexts", strings.Join(clusters.Names, ","),
+		"--insecure-secrets",
+		"--directory", outputDir,
+	)
+	if err := commands.Run(cmd, t.Log); err != nil {
+		t.Fatalf("kubectl-gather failed: %s", err)
+	}
+
+	for _, cluster := range clusters.Names {
+		for _, secret := range gatheredSecrets(t, outputDir, cluster) {
+			_, ok := secret.Annotations["kubectl-gather.nirs.github.com/sanitized"]
+			if ok {
+				t.Errorf("secret %s: should not be sanitized when --insecure-secrets is set", secret.Name)
+			}
+			for key, value := range secret.Data {
+				if len(value) == 0 {
+					t.Errorf("secret %s: key %q has empty data", secret.Name, key)
+				}
+			}
+		}
+	}
+}
+
 // Test helpers
 
 // gatheredSecrets returns all secrets gathered for a cluster.
