@@ -692,6 +692,10 @@ data value is replaced with a deterministic PBKDF2-HMAC-SHA256 hash,
 and the `kubectl.kubernetes.io/last-applied-configuration` annotation
 is stripped to prevent plaintext leaks.
 
+Use `--insecure-secrets` to disable sanitization for debugging or in
+test environments where secrets are not sensitive.
+`--insecure-secrets` cannot be used with `--salt`.
+
 A `kubectl-gather.nirs.github.com/sanitized` annotation is added to
 each sanitized secret with the base64-encoded salt. The salt can be
 used to verify the original secret hash value.
@@ -713,7 +717,7 @@ metadata:
 
 By default a random salt is generated. To use a specific salt, use the
 `--salt` flag with `--remote` to ensure all remote clusters use the
-same salt.
+same salt. `--salt` cannot be used with `--insecure-secrets`.
 
 ```
 $ kubectl gather --contexts dr1,dr2,hub --remote --salt "$(openssl rand -base64 16)" -d gather.remote
