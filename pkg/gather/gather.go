@@ -52,8 +52,12 @@ type Options struct {
 	Namespaces []string
 	Addons     []string
 	Cluster    bool
-	Salt       Salt
-	Log        *zap.SugaredLogger
+	// InsecureSecrets leaves Secret data unsanitized in the gathered
+	// output. By default (false), secret sanitization is always enabled
+	// regardless of Addons.
+	InsecureSecrets bool
+	Salt            Salt
+	Log             *zap.SugaredLogger
 }
 
 type Addon interface {
@@ -118,7 +122,7 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	}
 
 	// Generate a random salt if the Salt option is not set.
-	if opts.Salt == (Salt{}) {
+	if !opts.InsecureSecrets && opts.Salt == (Salt{}) {
 		opts.Salt = RandomSalt()
 	}
 

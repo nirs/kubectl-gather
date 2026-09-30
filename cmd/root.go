@@ -29,6 +29,7 @@ var namespaces []string
 var addons []string
 var cluster bool
 var remote bool
+var insecureSecrets bool
 var salt string
 var parsedSalt gather.Salt
 var verbose bool
@@ -110,8 +111,11 @@ func init() {
 			"specified, gather all resources")
 	rootCmd.Flags().BoolVarP(&remote, "remote", "r", false,
 		"run on the remote clusters (requires the \"oc\" command)")
+	rootCmd.Flags().BoolVar(&insecureSecrets, "insecure-secrets", false,
+		"disable secret sanitization for debugging or testing")
 	rootCmd.Flags().StringVar(&salt, "salt", "",
 		"base64-encoded 16-byte salt for secret hashing (default: randomly generated)")
+	rootCmd.MarkFlagsMutuallyExclusive("salt", "insecure-secrets")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"be more verbose")
 	rootCmd.Flags().StringVar(&logFormat, "log-format", "text",
@@ -168,10 +172,14 @@ func runGather(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if cmd.Flags().Changed("salt") {
-		log.Infof("Using user-provided salt %q", salt)
+	if insecureSecrets {
+		log.Info("Using insecure secrets")
 	} else {
-		log.Infof("Using generated salt %q", salt)
+		if cmd.Flags().Changed("salt") {
+			log.Infof("Using user-provided salt %q", salt)
+		} else {
+			log.Infof("Using generated salt %q", salt)
+		}
 	}
 
 	if namespaces == nil {
@@ -206,16 +214,18 @@ func validateOptions(cmd *cobra.Command) error {
 		return fmt.Errorf("--contexts cannot be used with multiple --kubeconfig files")
 	}
 
-	if salt != "" {
-		var err error
-		parsedSalt, err = validateSalt(salt)
-		if err != nil {
-			return err
+	if !insecureSecrets {
+		if salt != "" {
+			var err error
+			parsedSalt, err = validateSalt(salt)
+			if err != nil {
+				return err
+			}
+		} else {
+			parsedSalt = gather.RandomSalt()
+			// Keep the base64 salt string for logging and passing to remote clusters.
+			salt = base64.StdEncoding.EncodeToString(parsedSalt[:])
 		}
-	} else {
-		parsedSalt = gather.RandomSalt()
-		// Keep the base64 salt string for logging and passing to remote clusters.
-		salt = base64.StdEncoding.EncodeToString(parsedSalt[:])
 	}
 
 	// --namespaces=""

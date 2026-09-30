@@ -36,13 +36,14 @@ func localGather(clusterConfigs []*kubeconfig.Config) {
 		clusterDir := filepath.Join(directory, clusterConfig.Name)
 
 		options := gather.Options{
-			Kubeconfig: clusterConfig.Kubeconfig,
-			Context:    clusterConfig.Context,
-			Namespaces: namespaces,
-			Addons:     addons,
-			Cluster:    cluster,
-			Salt:       parsedSalt,
-			Log:        log.Named(clusterConfig.Name),
+			Kubeconfig:      clusterConfig.Kubeconfig,
+			Context:         clusterConfig.Context,
+			Namespaces:      namespaces,
+			Addons:          addons,
+			Cluster:         cluster,
+			InsecureSecrets: insecureSecrets,
+			Salt:            parsedSalt,
+			Log:             log.Named(clusterConfig.Name),
 		}
 
 		wg.Add(1)
