@@ -83,6 +83,47 @@ func TestSanitizeSecretDifferentSalts(t *testing.T) {
 	}
 }
 
+func TestInsecureSecretsSkipsSanitization(t *testing.T) {
+	g := &Gatherer{
+		opts: &Options{
+			InsecureSecrets: true,
+			Salt:            testSalt,
+			Log:             zap.NewNop().Sugar(),
+		},
+	}
+
+	obj := loadTestdata(t, "secret-with-data.yaml")
+	before := marshalYAML(t, obj.Object)
+
+	g.sanitizeResource(obj)
+	after := marshalYAML(t, obj.Object)
+
+	if before != after {
+		t.Fatalf("InsecureSecrets should skip sanitization:\n%s", unifiedDiff(t, before, after))
+	}
+}
+
+func TestSecureByDefault(t *testing.T) {
+	g := newTestGatherer(testSalt)
+
+	obj := loadTestdata(t, "secret-with-data.yaml")
+	before := marshalYAML(t, obj.Object)
+
+	g.sanitizeResource(obj)
+	after := marshalYAML(t, obj.Object)
+
+	if before == after {
+		t.Fatal("secret should be sanitized by default")
+	}
+
+	_, found, _ := unstructured.NestedString(
+		obj.Object, "metadata", "annotations", "kubectl-gather.nirs.github.com/sanitized",
+	)
+	if !found {
+		t.Fatal("sanitized annotation not found")
+	}
+}
+
 func TestRandomSalt(t *testing.T) {
 	values := map[Salt]struct{}{}
 	for range 1000 {
