@@ -52,8 +52,12 @@ type Options struct {
 	Namespaces []string
 	Addons     []string
 	Cluster    bool
-	Salt       Salt
-	Log        *zap.SugaredLogger
+	// InsecureSecrets leaves Secret data unsanitized in the gathered
+	// output. By default (false), secret sanitization is always enabled
+	// regardless of Addons.
+	InsecureSecrets bool
+	Salt            Salt
+	Log             *zap.SugaredLogger
 }
 
 type Addon interface {
@@ -97,6 +101,10 @@ func (r *resourceInfo) Name() string {
 }
 
 func New(config *rest.Config, directory string, opts Options) (*Gatherer, error) {
+	if !opts.InsecureSecrets && opts.Salt == (Salt{}) {
+		opts.Salt = RandomSalt()
+	}
+
 	// We want list all api resources (~80) quickly, gather logs from all pods,
 	// and run various commands on the nodes. This change makes gathering 60
 	// times faster than the defaults. (9.6 seconds -> 0.15 seconds).
@@ -115,11 +123,6 @@ func New(config *rest.Config, directory string, opts Options) (*Gatherer, error)
 	client, err := dynamic.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, err
-	}
-
-	// Generate a random salt if the Salt option is not set.
-	if opts.Salt == (Salt{}) {
-		opts.Salt = RandomSalt()
 	}
 
 	g := &Gatherer{

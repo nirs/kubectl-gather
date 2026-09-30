@@ -46,8 +46,11 @@ func HashValue(data []byte, salt Salt) []byte {
 
 // sanitizeResource modifies the resource in place, replacing sensitive data
 // with deterministic hashes. Currently handles Secret resources, other resource
-// types pass through unchanged.
+// types pass through unchanged. Does nothing if InsecureSecrets is set.
 func (g *Gatherer) sanitizeResource(item *unstructured.Unstructured) {
+	if g.opts.InsecureSecrets {
+		return
+	}
 	switch item.GetKind() {
 	case "Secret":
 		g.sanitizeSecret(item)
