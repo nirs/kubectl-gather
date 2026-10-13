@@ -191,10 +191,10 @@ jobs:
             runner: windows-latest
           - goos: darwin
             goarch: amd64
-            runner: macos-15-intel
+            runner: macos-26-intel
           - goos: darwin
             goarch: arm64
-            runner: macos-15
+            runner: macos-26
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
