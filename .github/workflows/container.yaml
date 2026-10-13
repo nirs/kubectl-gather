@@ -21,9 +21,9 @@ jobs:
       matrix:
         include:
           - goarch: amd64
-            runner: ubuntu-24.04
+            runner: ubuntu-26.04
           - goarch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
