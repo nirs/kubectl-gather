@@ -62,7 +62,7 @@ jobs:
   # ensures the code is really compatible with the specified go version.
   go-compatibility:
     name: Go compatibility
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       GOTOOLCHAIN: local
     steps:
