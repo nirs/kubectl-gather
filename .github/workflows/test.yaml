@@ -115,10 +115,10 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
-            runner: ubuntu-24.04
+            runner: ubuntu-26.04
           - goos: linux
             goarch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -182,10 +182,10 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
-            runner: ubuntu-24.04
+            runner: ubuntu-26.04
           - goos: linux
             goarch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
           - goos: windows
             goarch: amd64
             runner: windows-latest
