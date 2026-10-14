@@ -194,7 +194,7 @@ jobs:
             runner: macos-26-intel
           - goos: darwin
             goarch: arm64
-            runner: macos-26
+            runner: xcode-27
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
