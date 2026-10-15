@@ -64,7 +64,12 @@ func (a *pvcsAddon) gatherPersistentVolume(pvc *unstructured.Unstructured) {
 		return
 	}
 
-	gvr := corev1.SchemeGroupVersion.WithResource("persistentvolumes")
+	resource := a.ResourceForKind("", "PersistentVolume")
+	if resource == "" {
+		a.log.Warnf("Cannot find resource for kind \"PersistentVolume\"")
+		return
+	}
+	gvr := corev1.SchemeGroupVersion.WithResource(resource)
 	a.GatherResource(gvr, types.NamespacedName{Name: name})
 }
 
@@ -80,6 +85,12 @@ func (a *pvcsAddon) gatherStorageClass(pvc *unstructured.Unstructured) {
 		return
 	}
 
-	gvr := storagev1.SchemeGroupVersion.WithResource("storageclasses")
+	resource := a.ResourceForKind(storagev1.SchemeGroupVersion.Group, "StorageClass")
+	if resource == "" {
+		a.log.Warnf("Cannot find resource for kind \"StorageClass\"")
+		return
+	}
+
+	gvr := storagev1.SchemeGroupVersion.WithResource(resource)
 	a.GatherResource(gvr, types.NamespacedName{Name: name})
 }

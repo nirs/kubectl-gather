@@ -39,3 +39,7 @@ func (b *gatherBackend) Queue(work WorkFunc) {
 func (b *gatherBackend) GatherResource(gvr schema.GroupVersionResource, name types.NamespacedName) {
 	b.g.gatherResource(gvr, name)
 }
+
+func (b *gatherBackend) ResourceForKind(group, kind string) string {
+	return b.g.ResourceForKind(group, kind)
+}
