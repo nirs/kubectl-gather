@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: The kubectl-gather authors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    open-pull-requests-limit: 3
+    ignore:
+      # These Kubernetes libraries are upgraded deliberately and in lockstep;
+      # leave them out of automated Dependabot bumps. client-go and
+      # cli-runtime are included because this module requires them directly.
+      - dependency-name: "k8s.io/api"
+      - dependency-name: "k8s.io/apimachinery"
+      - dependency-name: "k8s.io/cli-runtime"
+      - dependency-name: "k8s.io/client-go"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    open-pull-requests-limit: 3
