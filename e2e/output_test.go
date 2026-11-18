@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/nirs/kubectl-gather/e2e/clusters"
-	"github.com/nirs/kubectl-gather/e2e/commands"
 	"github.com/nirs/kubectl-gather/e2e/test"
 	"github.com/nirs/kubectl-gather/pkg/gather"
 )
@@ -25,13 +24,11 @@ func TestOutput(t *testing.T) {
 		t := test.WithLog(dt)
 		outputDir := "out/test-output-local"
 
-		cmd := exec.Command(
-			kubectlGather,
+		if err := runGather(t,
 			"--contexts", clusters.C1,
 			"--output-dir", outputDir,
-		)
-		if r := commands.Run(cmd, t.Log); r.Err != nil {
-			t.Fatal(r.Err)
+		); err != nil {
+			t.Fatal(err)
 		}
 
 		reader := gather.NewOutputReader(filepath.Join(outputDir, clusters.C1))
@@ -47,14 +44,12 @@ func TestOutput(t *testing.T) {
 		outputDir := "out/test-output-remote"
 		os.RemoveAll(outputDir)
 
-		cmd := exec.Command(
-			kubectlGather,
+		if err := runGather(t,
 			"--contexts", clusters.C1,
 			"--remote",
 			"--output-dir", outputDir,
-		)
-		if r := commands.Run(cmd, t.Log); r.Err != nil {
-			t.Fatal(r.Err)
+		); err != nil {
+			t.Fatal(err)
 		}
 
 		dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -169,14 +164,12 @@ func TestSecretSanitization(dt *testing.T) {
 	salt := gather.RandomSalt()
 	saltB64 := base64.StdEncoding.EncodeToString(salt[:])
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--salt", saltB64,
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Fatalf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
 	for _, cluster := range clusters.Names {
@@ -196,13 +189,11 @@ func TestSecretSanitizationRandomSalt(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-secret-sanitization-random"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Fatalf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
 	salts := map[string]struct{}{}
@@ -224,14 +215,12 @@ func TestSecretSanitizationDisabled(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-secret-sanitization-disabled"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--insecure-secrets",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Fatalf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
 	for _, cluster := range clusters.Names {

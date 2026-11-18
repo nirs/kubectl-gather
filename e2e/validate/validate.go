@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"bufio"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -93,6 +94,30 @@ func JSONLog(t *test.T, logPath string) {
 		if err := decoder.Decode(&jsonData); err != nil {
 			t.Fatalf("line %d is not valid JSON: %v", lineNum, err)
 		}
+	}
+}
+
+// TextLog checks that logPath is a text log, not a JSON log.
+func TextLog(t *test.T, logPath string) {
+	if !PathExists(t, logPath) {
+		t.Fatalf("log %q does not exist", logPath)
+	}
+
+	file, err := os.Open(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			t.Fatal(err)
+		}
+		t.Fatalf("log %q is empty", logPath)
+	}
+	if line := scanner.Text(); len(line) > 0 && line[0] == '{' {
+		t.Fatalf("line 1 is JSON, expected text: %s", line)
 	}
 }
 

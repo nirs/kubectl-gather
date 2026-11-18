@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/nirs/kubectl-gather/e2e/clusters"
-	"github.com/nirs/kubectl-gather/e2e/commands"
+	"github.com/nirs/kubectl-gather/e2e/logging"
 	"github.com/nirs/kubectl-gather/e2e/test"
 	"github.com/nirs/kubectl-gather/e2e/validate"
 )
@@ -99,31 +99,28 @@ func TestGatherLocal(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-local"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		// Use the legacy option to verify that it remains supported.
 		"--directory", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
+	validate.JSONLog(t, filepath.Join(outputDir, "gather.log"))
 }
 
 func TestGatherClusterTrue(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-cluster-true"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--cluster=true",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
@@ -137,14 +134,12 @@ func TestGatherRemote(dt *testing.T) {
 
 	outputDir := "out/test-gather-remote"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--remote",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Fatalf("kubectl-gather --remote failed: %s", r.Err)
+	); err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", err)
 	}
 
 	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -159,13 +154,11 @@ func TestGatherMultipleKubeconfigs(dt *testing.T) {
 
 	kubeconfigs := exportKubeconfigs(t)
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--kubeconfig", strings.Join(kubeconfigs, ","),
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	validateGatherAll(t, validate.New(outputDir))
@@ -181,14 +174,12 @@ func TestGatherMultipleKubeconfigsRemote(dt *testing.T) {
 
 	kubeconfigs := exportKubeconfigs(t)
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--kubeconfig", strings.Join(kubeconfigs, ","),
 		"--remote",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Fatalf("kubectl-gather --remote failed: %s", r.Err)
+	); err != nil {
+		t.Fatalf("kubectl-gather --remote failed: %s", err)
 	}
 
 	dataRoot := findDataRoot(t, filepath.Join(outputDir, clusters.C1))
@@ -201,14 +192,12 @@ func TestGatherClusterFalse(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-cluster-false"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--cluster=false",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -251,13 +240,11 @@ func TestGatherEmptyNamespaces(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-empty-namespaces"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces=", "",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err == nil {
+	); err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
@@ -268,14 +255,12 @@ func TestGatherEmptyNamespacesClusterFalse(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-empty-namespaces-cluster-false"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces=", "",
 		"--cluster=false",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err == nil {
+	); err == nil {
 		t.Errorf("kubectl-gather should fail, but it succeeded")
 	}
 
@@ -286,15 +271,13 @@ func TestGatherEmptyNamespacesClusterTrue(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-empty-namespaces-cluster-true"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces=", "",
 		"--cluster=true",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -337,14 +320,12 @@ func TestGatherSpecificNamespaces(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-specific-namespaces"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	validateSpecificNamespaces(t, validate.New(outputDir))
@@ -354,15 +335,13 @@ func TestGatherSpecificNamespacesClusterFalse(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-specific-namespaces-cluster-false"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1",
 		"--cluster=false",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	validateSpecificNamespaces(t, validate.New(outputDir))
@@ -372,15 +351,13 @@ func TestGatherSpecificNamespacesClusterTrue(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-specific-namespaces-cluster-true"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1",
 		"--cluster=true",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -417,15 +394,13 @@ func TestGatherAddonsLogs(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-addons-logs"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "logs",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -463,15 +438,13 @@ func TestGatherAddonsPVCs(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-addons-pvcs"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons", "pvcs",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -506,15 +479,13 @@ func TestGatherAddonsEmpty(dt *testing.T) {
 	t := test.WithLog(dt)
 	outputDir := "out/test-gather-addons-empty"
 
-	cmd := exec.Command(
-		kubectlGather,
+	if err := runGather(t,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--namespaces", "test-common,test-c1,test-c2",
 		"--addons=",
 		"--output-dir", outputDir,
-	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	); err != nil {
+		t.Errorf("kubectl-gather failed: %s", err)
 	}
 
 	v := validate.New(outputDir)
@@ -551,22 +522,31 @@ func TestGatherAddonsEmpty(dt *testing.T) {
 	)
 }
 
-func TestJSONLogs(dt *testing.T) {
+// TestTextLogs checks the default text log format, which no other test covers.
+//
+// Unlike other tests, this one uses exec.Command directly instead of runGather:
+// runGather always adds --log-format json, which would hide the text format
+// under test.
+func TestTextLogs(dt *testing.T) {
 	t := test.WithLog(dt)
-	outputDir := "out/test-json-logs"
-	logPath := filepath.Join(outputDir, "gather.log")
+	outputDir := "out/test-text-logs"
 
 	cmd := exec.Command(
 		kubectlGather,
 		"--contexts", strings.Join(clusters.Names, ","),
 		"--output-dir", outputDir,
-		"--log-format", "json",
 	)
-	if r := commands.Run(cmd, t.Log); r.Err != nil {
-		t.Errorf("kubectl-gather failed: %s", r.Err)
+	t.Debugf("Running %s", cmd)
+
+	logger := logging.NewLineLogger(t.Log)
+	defer logger.Flush()
+	cmd.Stderr = logger
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("kubectl-gather failed: %s", err)
 	}
 
-	validate.JSONLog(t, logPath)
+	validate.TextLog(t, filepath.Join(outputDir, "gather.log"))
 }
 
 // Test helpers
@@ -583,13 +563,7 @@ func exportKubeconfigs(t *test.T) []string {
 	var paths []string
 	for _, name := range clusters.Names {
 		path := filepath.Join(dir, name+".yaml")
-		cmd := exec.Command(
-			"kubectl", "config", "view",
-			"--minify",
-			"--flatten",
-			"--context", name,
-		)
-		out, err := cmd.Output()
+		out, err := exportKubeconfig(name)
 		if err != nil {
 			t.Fatalf("failed to export kubeconfig for context %q: %s", name, err)
 		}
