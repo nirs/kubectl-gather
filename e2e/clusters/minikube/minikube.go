@@ -1,7 +1,6 @@
 package minikube
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,7 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/nirs/kubectl-gather/e2e/commands"
+	"github.com/nirs/kubectl-gather/e2e/logging"
 )
 
 type Cluster struct {
@@ -31,17 +30,11 @@ type profileList struct {
 }
 
 func ClustersStatus(log *zap.SugaredLogger) (map[string]string, error) {
-	status := map[string]string{}
-	cmd := exec.Command("minikube", "profile", "list", "--output", "json")
-	log.Debugf("Running %v", cmd)
-	out, err := cmd.Output()
+	profiles, err := listProfiles(log)
 	if err != nil {
-		return status, fmt.Errorf("failed to list profiles: %w: %s", err, commands.Stderr(err))
+		return nil, err
 	}
-	profiles := profileList{}
-	if err := json.Unmarshal(out, &profiles); err != nil {
-		return status, fmt.Errorf("failed to unmarshal profile list: %w", err)
-	}
+	status := map[string]string{}
 	for _, profile := range profiles.Valid {
 		status[profile.Name] = profile.Status
 	}
@@ -49,6 +42,24 @@ func ClustersStatus(log *zap.SugaredLogger) (map[string]string, error) {
 		status[profile.Name] = profile.Status
 	}
 	return status, nil
+}
+
+// listProfiles returns the minikube profiles, including invalid profiles.
+func listProfiles(log *zap.SugaredLogger) (profileList, error) {
+	cmd := exec.Command("minikube", "profile", "list", "--output", "json")
+	log.Debugf("Running %s", cmd)
+
+	out, err := cmd.Output()
+	if err != nil {
+		err = logging.WithStderr(err, logging.Stderr(err))
+		return profileList{}, fmt.Errorf("failed to list profiles: %w", err)
+	}
+
+	profiles := profileList{}
+	if err := json.Unmarshal(out, &profiles); err != nil {
+		return profileList{}, fmt.Errorf("failed to unmarshal profile list: %w", err)
+	}
+	return profiles, nil
 }
 
 func New(name string, log *zap.SugaredLogger) *Cluster {
@@ -138,34 +149,24 @@ func (c *Cluster) verifyDNS() error {
 	return c.run("ssh", "--", "resolvectl", "query", "google.com")
 }
 
-// run executes a minikube command, streaming stdout to the log.
+// run executes a minikube command for the cluster, logging stdout and stderr
+// and adding captured stderr to the error.
 func (c *Cluster) run(args ...string) error {
 	args = append([]string{"--profile", c.Name}, args...)
 	cmd := exec.Command("minikube", args...)
 	c.log.Debugf("Running %s", cmd)
 
+	stdoutLog := logging.NewLineLogger(c.log)
+	stderrLog := logging.NewLineLogger(c.log)
+	defer stdoutLog.Flush()
+	defer stderrLog.Flush()
+
 	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	pipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	reader := bufio.NewReader(pipe)
-	for {
-		line, _, err := reader.ReadLine()
-		if err != nil {
-			if err != io.EOF {
-				c.log.Debugf("Failed to read from command stdout: %s", err)
-			}
-			break
-		}
-		c.log.Debug(string(line))
-	}
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("%w: %s", err, stderr.String())
+	cmd.Stdout = stdoutLog
+	cmd.Stderr = io.MultiWriter(stderrLog, &stderr)
+
+	if err := cmd.Run(); err != nil {
+		return logging.WithStderr(err, stderr.Bytes())
 	}
 	return nil
 }
