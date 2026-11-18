@@ -11,6 +11,11 @@ import (
 
 const loggerName = "e2e"
 
+// separator prefixes every line written by a command, so command output can be
+// told apart from test output. Never use "* " as the separator: minikube
+// already prefixes its own output with "* " when stdout is not a terminal.
+const separator = "| "
+
 // CreateLogger creates a logger that writes debug output to e2e/out/e2e.log
 // and minimal info messages to stderr. Must be called from the project root.
 func NewLogger() (*zap.SugaredLogger, error) {
